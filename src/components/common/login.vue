@@ -34,7 +34,6 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { userApi } from '@/api/user'
 export default defineComponent({
   name: 'Login',
   data() {
@@ -68,7 +67,6 @@ export default defineComponent({
               ...this.user
             }
           }).then((res: any) => {
-            console.log('登录响应:', res);
 
             // 根据后端结构调整
             if (res.code === 200) {
@@ -89,16 +87,16 @@ export default defineComponent({
               // 根据用户类型跳转
               switch (userType) {
                 case 'admin':
-                  this.$router.push({ name: 'SuperAdminDashboard' });
+                  this.$router.push({ name: 'SuperAdmin' });
                   break;
                 case 'instAdmin':
-                  this.$router.push({ name: 'InstAdminDashboard' });
+                  this.$router.push({ name: 'InstAdmin' });
                   break;
                 case 'defenseLeader':
-                  this.$router.push({ name: 'DefenseLeaderDashboard' });
+                  this.$router.push({ name: 'DefenseLeader' });
                   break;
                 case 'teacher':
-                  this.$router.push({ name: 'TeacherDashboard' });
+                  this.$router.push({ name: 'Teacher' });
                   break;
                 default:
                   this.$message.error('未知用户类型');

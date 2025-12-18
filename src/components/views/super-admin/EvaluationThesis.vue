@@ -12,7 +12,7 @@
         </div>
       </div>
     </el-card>
-
+    <router-view/>
     <!-- 指标管理 -->
     <el-card class="indicators-card">
       <template #header>
