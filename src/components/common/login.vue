@@ -34,7 +34,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-
+import { userApi } from '@/api/user'
 export default defineComponent({
   name: 'Login',
   data() {
@@ -55,13 +55,14 @@ export default defineComponent({
     };
   },
   methods: {
+
     login() {
       (this.$refs.loginForm as any).validate((valid: boolean) => {
         if (valid) {
           this.loading = true;
 
           this.$axios({
-            url: '/api/login',  // 修改为新的接口地址
+            url: '/api/login',
             method: 'post',
             data: {
               ...this.user
@@ -69,42 +70,56 @@ export default defineComponent({
           }).then((res: any) => {
             console.log('登录响应:', res);
 
-            if (res.data.code === 200) {
-              const loginData = res.data.data;
+            // 根据后端结构调整
+            if (res.code === 200) {
+              const loginData = res.data;  // LoginResponse对象
               const userType = loginData.userType;
 
-              // 存储用户信息到localStorage或Vuex
+              // 如果没有token，生成一个模拟token
+              const token = loginData.token || `mock-token-${Date.now()}-${userType}`;
+
+              // 存储用户信息
+              localStorage.setItem('token', token);
               localStorage.setItem('userType', userType);
-              localStorage.setItem('userInfo', JSON.stringify(loginData.userInfo));
+              localStorage.setItem('userInfo', JSON.stringify(loginData.userInfo || {}));
+
+              console.log('登录成功，用户类型:', userType);
+              console.log('生成的token:', token);
 
               // 根据用户类型跳转
               switch (userType) {
                 case 'admin':
-                  this.$router.push('/superAdminDashboard');
+                  this.$router.push({ name: 'SuperAdminDashboard' });
                   break;
                 case 'instAdmin':
-                  this.$router.push('/instAdminDashboard');
+                  this.$router.push({ name: 'InstAdminDashboard' });
                   break;
                 case 'defenseLeader':
-                  this.$router.push('/defenseLeaderDashboard');
+                  this.$router.push({ name: 'DefenseLeaderDashboard' });
                   break;
                 case 'teacher':
-                  this.$router.push('/teacherDashboard');
+                  this.$router.push({ name: 'TeacherDashboard' });
                   break;
                 default:
                   this.$message.error('未知用户类型');
               }
             } else {
-              this.$message.error(res.data.message || '登录失败');
+              this.$message.error(res.message || '登录失败');
             }
           }).catch((error: any) => {
-            console.error('登录错误:', error);
-            this.$message.error('登录失败，请检查网络连接');
+            console.error('登录错误详情:', error);
+
+            if (error.response) {
+              const errorData = error.response.data;
+              this.$message.error(errorData?.message || `登录失败，状态码: ${error.response.status}`);
+            } else if (error.request) {
+              this.$message.error('网络连接异常，请检查服务器是否运行');
+            } else {
+              this.$message.error('请求配置错误: ' + error.message);
+            }
           }).finally(() => {
             this.loading = false;
           });
-        } else {
-          return false;
         }
       });
     }
