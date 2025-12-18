@@ -2,7 +2,7 @@
   <div class="teacher-dashboard">
     <el-header class="header" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
       <div class="header-left">
-        <span class="system-title">答辩管理系统 - 教师端</span>
+        <span class="system-title">答辩管理系统 -教师端</span>
       </div>
       <div class="header-right">
         <span class="welcome">欢迎，李老师 (教师编号: T1001)</span>
