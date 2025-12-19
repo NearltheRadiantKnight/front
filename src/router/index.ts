@@ -44,11 +44,6 @@ const router = createRouter({
           component: () => import('@/components/views/super-admin/AdminList.vue')
         },
         {
-          path: '/institute-list',
-          name: 'InstituteList',
-          component: () => import('@/components/views/super-admin/InstituteList.vue')
-        },
-        {
           path: '/instituteadd',
           name:'instituteadd',
           component:()=>import('@/components/views/super-admin/InstituteAdd.vue')

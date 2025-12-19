@@ -3,6 +3,9 @@ import { get, post, put, del } from './index'
 
 // 院系相关 API
 export const instituteApi = {
+  getInstituteCount:():Promise<number>=> {
+    return get<number>('/institute/count')
+  },
   // 获取院系列表
   getInstitutes: (params?: any) => {
     return get('/institute/list', params)

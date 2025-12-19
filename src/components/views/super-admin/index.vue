@@ -1,14 +1,35 @@
-<script setup lang="ts">
-import {ref} from 'vue'
+<script lang="ts">
+import {ref, onMounted} from 'vue'
 import { useRouter } from 'vue-router'
-const router = useRouter()
-const stats = ref({
-  instituteCount: 0,
-  adminCount: 0,
-  teacherCount: 0,
-  leaderCount: 0
-});
+import {instituteApi} from '@/api/institute.ts'
+import {userApi} from "@/api/user.ts";
 
+const router = useRouter()
+
+export default {
+  data(){
+    return{
+      instituteCount: 0,
+      adminCount: 0,
+      teacherCount: 0,
+      leaderCount: 0
+    }
+  },
+  methods:{
+    async getInstituteCount(){
+      const p = instituteApi.getInstituteCount();
+      this.instituteCount = await p;
+    },
+    async getTeacherCount(){
+      const p = userApi.getTeacherCount();
+      this.teacherCount = await p;
+    }
+  },
+  mounted(): any {
+    this.getInstituteCount();
+    this.getTeacherCount();
+  }
+}
 const todos = ref([
   { id: 1, content: '审核计算机学院新增教师申请', time: '2024-05-15 10:30' },
   { id: 2, content: '配置2024年答辩评价指标', time: '2024-05-14 14:20' },
@@ -18,6 +39,7 @@ const todos = ref([
 const navigateTo = (dist:string) => {
   router.push(dist)
 }
+
 </script>
 
 <template>
@@ -34,7 +56,7 @@ const navigateTo = (dist:string) => {
             <i class="el-icon-office-building"></i>
           </div>
           <div class="stat-content">
-            <h3>{{ stats.instituteCount }}</h3>
+            <h3>{{ instituteCount }}</h3>
             <p>院系数量</p>
           </div>
         </el-card>
@@ -45,7 +67,7 @@ const navigateTo = (dist:string) => {
             <i class="el-icon-user"></i>
           </div>
           <div class="stat-content">
-            <h3>{{ stats.adminCount }}</h3>
+            <h3>{{ adminCount }}</h3>
             <p>院系管理员</p>
           </div>
         </el-card>
@@ -56,7 +78,7 @@ const navigateTo = (dist:string) => {
             <i class="el-icon-s-custom"></i>
           </div>
           <div class="stat-content">
-            <h3>{{ stats.teacherCount }}</h3>
+            <h3>{{ teacherCount }}</h3>
             <p>教师总数</p>
           </div>
         </el-card>
@@ -67,7 +89,7 @@ const navigateTo = (dist:string) => {
             <i class="el-icon-medal"></i>
           </div>
           <div class="stat-content">
-            <h3>{{ stats.leaderCount }}</h3>
+            <h3>{{ leaderCount }}</h3>
             <p>答辩组长</p>
           </div>
         </el-card>

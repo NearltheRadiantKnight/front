@@ -1,9 +1,9 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios'
+import axios, {type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 
 // 创建 axios 实例
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080',  // 修改为8080
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',  // 修改为8080
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
@@ -12,7 +12,7 @@ const request = axios.create({
 
 // 请求拦截器
 request.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config) => {
     // 从本地存储获取 token
     const token = localStorage.getItem('token') || sessionStorage.getItem('token')
     if (token && config.headers) {

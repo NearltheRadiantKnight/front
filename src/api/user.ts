@@ -71,5 +71,8 @@ export const userApi = {
   // 检查用户名是否可用
   checkUsername: (username: string) => {
     return get('/user/check-username', { username })
+  },
+  getTeacherCount: ()=>{
+    return get<number>('/teacher/count')
   }
 }
