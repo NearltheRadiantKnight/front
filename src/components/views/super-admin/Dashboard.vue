@@ -32,7 +32,6 @@
           background-color="#304156"
           text-color="#fff"
           class="sidebar-menu"
-          :default-active="$route.path"
           router
         >
           <div class="menu-title">系统管理</div>

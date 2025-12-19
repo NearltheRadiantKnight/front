@@ -39,19 +39,7 @@ request.interceptors.response.use(
   (response: AxiosResponse) => {
     const { data, config } = response
 
-    // 根据你的后端返回的数据结构进行调整
-    // 如果后端返回的是 { code: 200, data: ..., message: 'success' } 格式
-    if (data.code === 200) {
-      return data.data
-    }
-    // 如果后端返回的是 { success: true, data: ..., message: 'success' } 格式
-    else if (data.success) {
-      return data.data
-    }
-    // 如果后端直接返回数据
-    else {
-      return data
-    }
+    return data;
   },
   (error) => {
     // 网络错误或服务器错误

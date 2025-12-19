@@ -17,8 +17,7 @@ export default {
   },
   methods:{
     async getInstituteCount(){
-      const p = instituteApi.getInstituteCount();
-      this.instituteCount = await p;
+      const p = instituteApi.getInstituteCount().then(res=>{ this.instituteCount = res.data});
     },
     async getTeacherCount(){
       const p = userApi.getTeacherCount();

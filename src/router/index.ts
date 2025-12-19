@@ -11,6 +11,7 @@ const router = createRouter({
     {
       path: '/super-admin',
       name: 'SuperAdmin',
+      redirect: 'dashboard',
       component: () => import('@/components/views/super-admin/Dashboard.vue'),
       children: [
         {
