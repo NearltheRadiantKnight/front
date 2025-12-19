@@ -32,7 +32,10 @@ export const userApi = {
   getUserInfo: () => {
     return get('/user/info')
   },
-
+  //获取管理员数量
+  getAdminCount() {
+    return get('/admin/count')
+  },
   // 创建院系管理员
   createInstituteAdmin: (data: any) => {
     return post('/admin/institute', data)

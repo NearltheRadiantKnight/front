@@ -16,12 +16,14 @@ export default {
     }
   },
   methods:{
-    async getInstituteCount(){
-      const p = instituteApi.getInstituteCount().then(res=>{ this.instituteCount = res.data});
+    getInstituteCount(){
+      instituteApi.getInstituteCount().then((res:any)=>{ this.instituteCount = res.data});
     },
-    async getTeacherCount(){
-      const p = userApi.getTeacherCount();
-      this.teacherCount = await p;
+    getAdminCount(){
+      userApi.getAdminCount().then((res:any)=>{ this.adminCount = res.data});
+    },
+    getTeacherCount(){
+      userApi.getTeacherCount().then((res:any)=>{ this.teacherCount = res.data});
     }
   },
   mounted(): any {
