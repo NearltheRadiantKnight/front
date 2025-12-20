@@ -24,6 +24,9 @@ export default {
     },
     getTeacherCount(){
       userApi.getTeacherCount().then((res:any)=>{ this.teacherCount = res.data});
+    },
+    navigateTo(path:string){
+        this.$router.push(path);
     }
   },
   mounted(): any {
@@ -36,10 +39,6 @@ const todos = ref([
   { id: 2, content: '配置2024年答辩评价指标', time: '2024-05-14 14:20' },
   { id: 3, content: '上传新版毕业论文模板', time: '2024-05-13 09:15' }
 ]);
-
-const navigateTo = (dist:string) => {
-  router.push(dist)
-}
 
 </script>
 
