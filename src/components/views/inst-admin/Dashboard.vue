@@ -1,70 +1,90 @@
 <template>
   <div class="inst-admin-dashboard">
+    <!-- 导航栏 -->
     <el-header class="header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
       <div class="header-left">
         <span class="system-title">答辩管理系统 - 院系管理员</span>
       </div>
       <div class="header-right">
-        <span class="welcome">欢迎，计算机学院管理员</span>
+        <el-tag type="success">院系管理员</el-tag>
+        <span class="welcome">欢迎，{{ adminName }}</span>
         <el-button type="text" @click="logout">退出登录</el-button>
       </div>
     </el-header>
 
+    <!-- 主要内容 -->
     <el-container class="main-container">
-      <el-aside width="250px" class="sidebar">
-        <div class="institute-info">
-          <i class="el-icon-school"></i>
-          <span>计算机学院</span>
-          <!-- 添加上传签名按钮 -->
-          <el-button type="text" @click="uploadSignatureDialogVisible = true" style="color: #ffd04b; margin-left: 10px;">
-            <i class="el-icon-upload"></i>上传签名
-          </el-button>
+      <!-- 侧边栏 -->
+      <el-aside width="280px" class="sidebar">
+        <div class="user-info">
+          <div class="avatar">
+            <i class="el-icon-school"></i>
+          </div>
+          <div class="info">
+            <p class="name">{{ adminName }}</p>
+            <p class="role">{{ instituteName }}</p>
+            <p class="time">登录时间: {{ loginTime }}</p>
+            <!-- 添加上传签名按钮 -->
+            <el-button
+                type="primary"
+                size="small"
+                @click="uploadSignatureDialogVisible = true"
+                style="margin-top: 10px;"
+            >
+              <i class="el-icon-upload"></i>上传签名
+            </el-button>
+          </div>
         </div>
+
         <el-menu
-          active-text-color="#ffd04b"
-          background-color="#304156"
-          text-color="#fff"
-          class="sidebar-menu"
+            active-text-color="#ffd04b"
+            background-color="#304156"
+            text-color="#fff"
+            class="sidebar-menu"
+            router
+            :default-active="$route.path"
         >
-          <el-menu-item index="1">
+          <div class="menu-title">院系管理</div>
+
+          <el-menu-item index="/inst-admin">
             <i class="el-icon-s-home"></i>
             <span>院系概览</span>
           </el-menu-item>
 
           <!-- 学生管理 -->
-          <el-submenu index="2">
+          <el-submenu index="student">
             <template #title>
               <i class="el-icon-user-solid"></i>
               <span>学生管理</span>
             </template>
-            <el-menu-item index="2-1">学生列表</el-menu-item>
-            <el-menu-item index="2-2">导入学生数据</el-menu-item>
+            <el-menu-item index="/inst-admin/student-list">学生列表</el-menu-item>
+            <el-menu-item index="/inst-admin/student-import">导入学生数据</el-menu-item>
           </el-submenu>
 
           <!-- 教师管理 -->
-          <el-submenu index="3">
+          <el-submenu index="teacher">
             <template #title>
               <i class="el-icon-s-custom"></i>
               <span>教师管理</span>
             </template>
-            <el-menu-item index="3-1">教师列表</el-menu-item>
-            <el-menu-item index="3-2">添加教师</el-menu-item>
-            <el-menu-item index="3-3">导入教师数据</el-menu-item>
+            <el-menu-item index="/inst-admin/teacher-list">教师列表</el-menu-item>
+            <el-menu-item index="/inst-admin/teacher-add">添加教师</el-menu-item>
+            <el-menu-item index="/inst-admin/teacher-import">导入教师数据</el-menu-item>
           </el-submenu>
 
           <!-- 答辩分组管理 -->
-          <el-submenu index="4">
+          <el-submenu index="defense-group">
             <template #title>
               <i class="el-icon-s-operation"></i>
               <span>答辩分组管理</span>
             </template>
-            <el-menu-item index="4-1">答辩小组列表</el-menu-item>
-            <el-menu-item index="4-2">创建答辩小组</el-menu-item>
-            <el-menu-item index="4-3">分配学生到小组</el-menu-item>
-            <el-menu-item index="4-4">指定答辩组长</el-menu-item>
+            <el-menu-item index="/inst-admin/group-list">答辩小组列表</el-menu-item>
+            <el-menu-item index="/inst-admin/group-create">创建答辩小组</el-menu-item>
+            <el-menu-item index="/inst-admin/group-assign">分配学生到小组</el-menu-item>
+            <el-menu-item index="/inst-admin/group-leader">指定答辩组长</el-menu-item>
           </el-submenu>
 
-          <el-menu-item index="5">
+          <el-menu-item index="/inst-admin/defense-arrangement">
             <i class="el-icon-tickets"></i>
             <span>答辩安排</span>
           </el-menu-item>
@@ -72,93 +92,25 @@
       </el-aside>
 
       <el-main class="content">
-        <div class="page-title">
-          <h2>计算机学院 - 管理控制台</h2>
-          <p class="subtitle">管理本学院的学生、教师、答辩分组和答辩安排</p>
-        </div>
-
-        <el-row :gutter="20" class="stats-row">
-          <el-col :span="6">
-            <el-card class="stat-card">
-              <div class="stat-icon" style="background: #36a3f7;">
-                <i class="el-icon-user-solid"></i>
-              </div>
-              <div class="stat-content">
-                <h3>120</h3>
-                <p>本院学生</p>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card">
-              <div class="stat-icon" style="background: #34bfa3;">
-                <i class="el-icon-s-custom"></i>
-              </div>
-              <div class="stat-content">
-                <h3>45</h3>
-                <p>本院教师</p>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card">
-              <div class="stat-icon" style="background: #f4516c;">
-                <i class="el-icon-s-operation"></i>
-              </div>
-              <div class="stat-content">
-                <h3>6</h3>
-                <p>答辩小组</p>
-              </div>
-            </el-card>
-          </el-col>
-          <el-col :span="6">
-            <el-card class="stat-card">
-              <div class="stat-icon" style="background: #ffb822;">
-                <i class="el-icon-finished"></i>
-              </div>
-              <div class="stat-content">
-                <h3>12</h3>
-                <p>已完成答辩</p>
-              </div>
-            </el-card>
-          </el-col>
-        </el-row>
-
-        <el-card class="role-info">
-          <h3><i class="el-icon-info"></i> 院系管理员权限说明</h3>
-          <p>您作为计算机学院的院系管理员，拥有以下管理权限：</p>
-          <ul>
-            <li>管理本学院的学生信息（包含导入学生数据）</li>
-            <li>管理本学院的教师信息（包含导入教师数据）</li>
-            <li>进行答辩分组，分配学生到不同的答辩小组</li>
-            <li>指定答辩小组组长（每个教师只能参加一个答辩小组）</li>
-            <li>上传和管理系主任签名图片</li>
-            <li>安排和组织本学院的答辩活动</li>
-            <li>查看本学院的答辩统计数据</li>
-          </ul>
-          <div class="signature-info" v-if="currentSignature">
-            <p><strong>当前系主任签名：</strong></p>
-            <img :src="currentSignature" alt="系主任签名" style="max-width: 200px; border: 1px solid #ddd; padding: 5px;"/>
-          </div>
-        </el-card>
+        <router-view/>
       </el-main>
     </el-container>
 
     <!-- 上传系主任签名对话框 -->
     <el-dialog
-      title="上传系主任签名图片"
-      v-model="uploadSignatureDialogVisible"
-      width="400px"
-      center
+        title="上传系主任签名图片"
+        v-model="uploadSignatureDialogVisible"
+        width="400px"
+        center
     >
       <el-upload
-        class="signature-upload"
-        drag
-        action="/api/upload/signature"
-        :on-success="handleSignatureUploadSuccess"
-        :on-error="handleSignatureUploadError"
-        :show-file-list="false"
-        accept=".jpg,.jpeg,.png,.gif"
+          class="signature-upload"
+          drag
+          action="/api/upload/signature"
+          :on-success="handleSignatureUploadSuccess"
+          :on-error="handleSignatureUploadError"
+          :show-file-list="false"
+          accept=".jpg,.jpeg,.png,.gif"
       >
         <i class="el-icon-upload"></i>
         <div class="el-upload__text">将签名图片拖到此处，或<em>点击上传</em></div>
@@ -175,42 +127,47 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import { ElMessage } from 'element-plus';
+import { defineComponent } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 export default defineComponent({
   name: 'InstAdminDashboard',
-  setup() {
-    const uploadSignatureDialogVisible = ref(false);
-    const currentSignature = ref(''); // 当前系主任签名图片URL
-
-    // 模拟已有的签名图片
-    currentSignature.value = '/api/signature/current.jpg';
-
-    const handleSignatureUploadSuccess = (response: any) => {
-      ElMessage.success('系主任签名上传成功');
-      currentSignature.value = response.url; // 更新显示的签名图片
-    };
-
-    const handleSignatureUploadError = () => {
-      ElMessage.error('系主任签名上传失败');
-    };
-
+  data() {
     return {
-      uploadSignatureDialogVisible,
-      currentSignature,
-      handleSignatureUploadSuccess,
-      handleSignatureUploadError
+      adminName: '院系管理员',
+      instituteName: '计算机学院',
+      loginTime: '',
+      uploadSignatureDialogVisible: false,
     };
+  },
+  methods: {
+    // 退出登录
+    logout() {
+      ElMessageBox.confirm('确定要退出登录吗？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        localStorage.clear();
+        window.location.href = '/';
+      }).catch(() => {
+        // 取消操作
+      });
+    },
+
+    // 上传签名成功
+    handleSignatureUploadSuccess(response: any) {
+      ElMessage.success('系主任签名上传成功');
+    },
+
+    // 上传签名失败
+    handleSignatureUploadError() {
+      ElMessage.error('系主任签名上传失败');
+    }
   },
   mounted() {
     console.log('院系管理员Dashboard已加载');
-  },
-  methods: {
-    logout() {
-      localStorage.clear();
-      this.$router.push('/');
-    }
+    this.loginTime = new Date().toLocaleString();
   }
 });
 </script>
@@ -218,53 +175,105 @@ export default defineComponent({
 <style scoped>
 .inst-admin-dashboard {
   height: 100vh;
-  background-color: #f8f9fa;
+  background-color: #f0f2f5;
 }
 
-.institute-info {
+.header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+}
+
+.system-title {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.welcome {
+  font-size: 14px;
+}
+
+.main-container {
+  height: calc(100vh - 60px);
+}
+
+.sidebar {
+  background-color: #304156;
+  box-shadow: 2px 0 6px rgba(0,21,41,.35);
+  overflow-y: auto;
+}
+
+.user-info {
   padding: 20px;
   background: #1f2d3d;
   color: white;
-  font-size: 16px;
   text-align: center;
   border-bottom: 1px solid #2d3a4b;
+}
+
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  margin: 0 auto 15px;
+  font-size: 28px;
 }
 
-.institute-info i {
-  margin-right: 10px;
-  font-size: 18px;
+.info .name {
+  font-size: 16px;
+  font-weight: bold;
+  margin: 5px 0;
 }
 
-.role-info {
-  margin-top: 30px;
-  border-left: 4px solid #f5576c;
+.info .role {
+  font-size: 12px;
+  color: #ccc;
+  margin: 3px 0;
+  background: #f5576c;
+  padding: 2px 8px;
+  border-radius: 10px;
+  display: inline-block;
 }
 
-.role-info h3 {
-  color: #f5576c;
+.info .time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
 }
 
-.role-info ul {
-  margin-top: 15px;
-  color: #666;
+.menu-title {
+  color: #fff;
+  padding: 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #1f2d3d;
+  background: #2d3a4b;
 }
 
-.signature-info {
-  margin-top: 20px;
-  padding: 15px;
-  background: #f8f9fa;
-  border-radius: 4px;
+.sidebar-menu {
+  border-right: none;
+}
+
+.content {
+  padding: 20px;
+  overflow-y: auto;
 }
 
 .signature-upload {
   text-align: center;
-}
-
-/* 继承基础样式 */
-.header, .main-container, .sidebar, .content, .stats-row, .stat-card {
-  /* 复用超级管理员的基础样式 */
 }
 </style>
