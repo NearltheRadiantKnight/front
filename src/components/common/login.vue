@@ -305,7 +305,7 @@ export default defineComponent({
         loading.value = true;
 
         // 教师登录接口
-        request.post('/teacher/login', teacherForm.value)
+        request.post('/loginWithYear', teacherForm.value)
             .then((res: any) => {
               if (res.code === 200) {
                 handleLoginSuccess(res.data);
