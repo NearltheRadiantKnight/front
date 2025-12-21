@@ -38,13 +38,13 @@
                     <el-input v-model="form.name" placeholder="请输入院系名称"/>
                 </el-form-item>
                 <el-form-item label="院系管理员" required>
-                    <el-select v-model="form.adminId" placeholder="请选择院系管理员" style="width: 100%">
+                    <el-select v-model="form.adminId" placeholder="请选择院系管理员" style="width: 100%" :empty-values="[null,undefined]">
+                        <el-option :value="''" label="无管理员"/>
                         <el-option
-                                v-for="item in this.instituteList"
+                                v-for="item in this.admins"
                                 :key="item.id"
-                                :label="item.adminName"
-                                :value="item.adminId"
-                                @click.native="()=>{this.form=item.id; }"
+                                :label="item.id"
+                                :value="item.id"
                         />
                     </el-select>
                 </el-form-item>
@@ -61,11 +61,14 @@
 import {defineComponent, ref, computed} from 'vue';
 import {ElMessage, ElMessageBox} from 'element-plus';
 import request from "@/api";
+import {instituteApi} from "@/api/institute.ts";
+import {userApi} from "@/api/user.ts";
 
 export default defineComponent({
     name: 'InstituteList',
     data(){
         return{
+            admins:[],
             instituteList : [],
             showDialog: ref(false),
             dialogTitle: ref('添加院系'),
@@ -78,10 +81,14 @@ export default defineComponent({
         }
     },
     methods:{
+        loadAdmin() {
+            userApi.getInstituteAdmins().then((res: any) => {
+                console.log(res.data)
+                this.admins = res.data
+            });
+        },
         loadInstituteList(){
-            request.get("/institute/list").then((res:any)=>{
-                this.instituteList = res.data
-            })
+            instituteApi.getInstitutes().then((res:any)=>{ this.instituteList=res.data})
         },
         handleEdit(row: any){
             this.dialogTitle = '编辑院系';
@@ -94,7 +101,6 @@ export default defineComponent({
                 ElMessage.warning('请填写院系名称');
                 return;
             }
-
             if (this.isEditMode) {
                 request.post("/institute/update", {...this.form}).then((res:any)=>{
                     ElMessage.success('院系信息已更新');
@@ -109,14 +115,14 @@ export default defineComponent({
                 confirmButtonText: '确定',
                 cancelButtonText: '取消'
             }).then(()=>{
+                request.post("/institute/delete", {"id":row.id}).then((res:any)=>{
+                    ElMessage.success('院系已删除');
+                    window.location.reload();
                 ElMessage({
                     type:'success',
                     message:'删除成功'
                 })
             }).catch(()=>{});
-            request.post("/institute/delete", {"id":row.id}).then((res:any)=>{
-                ElMessage.success('院系已删除');
-                window.location.reload();
             });
         },
         resetForm() {
@@ -130,28 +136,7 @@ export default defineComponent({
     },
     mounted(): any {
         this.loadInstituteList();
-    },
-    setup() {
-
-        // 计算属性：为每个院系添加管理员姓名
-        const instituteListWithAdminName = computed(() => {
-            return this.instituteList.value.map(institute => ({
-                ...institute,
-                instAdminName: getAdminName(institute.instAdmin) || '未设置'
-            }));
-        });
-
-        const handleAdd = () => {
-            dialogTitle.value = '添加院系';
-            isEditMode.value = false;
-            resetForm();
-            showDialog.value = true;
-        };
-
-        return {
-            instituteListWithAdminName,
-            handleAdd
-        };
+        this.loadAdmin();
     }
 });
 </script>

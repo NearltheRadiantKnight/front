@@ -1,5 +1,4 @@
 <script lang="ts">
-import {ref, onMounted} from 'vue'
 import { useRouter } from 'vue-router'
 import {instituteApi} from '@/api/institute.ts'
 import {userApi} from "@/api/user.ts";
@@ -34,11 +33,6 @@ export default {
     this.getTeacherCount();
   }
 }
-const todos = ref([
-  { id: 1, content: '审核计算机学院新增教师申请', time: '2024-05-15 10:30' },
-  { id: 2, content: '配置2024年答辩评价指标', time: '2024-05-14 14:20' },
-  { id: 3, content: '上传新版毕业论文模板', time: '2024-05-13 09:15' }
-]);
 
 </script>
 

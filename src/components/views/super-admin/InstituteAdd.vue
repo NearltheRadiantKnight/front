@@ -16,7 +16,7 @@
                                clearable
                                filterable
                     >
-                        <el-option v-for="item in userlist"
+                        <el-option v-for="item in admins"
                                    :label="item.realName"
                                    :key="item.id"
                                    :value="item.id"
@@ -63,6 +63,7 @@
 import {defineComponent, ref} from 'vue';
 import {ElMessage, type FormInstance} from 'element-plus';
 import request from "@/api";
+import {userApi} from "@/api/user.ts";
 
 export default defineComponent({
     name: 'InstituteAdd',
@@ -79,7 +80,7 @@ export default defineComponent({
                 address: '',
                 description: ''
             },
-            userlist:[]
+            admins:[]
         }
     },
     methods: {
@@ -104,14 +105,15 @@ export default defineComponent({
             if (!this.formRef.value) return;
             this.formRef.value.resetFields();
         },
-        getUserList(){
-            request.get("/teacher/list").then((res:any)=>{
-                this.userlist = res.data
-            })
+        loadAdmin() {
+            userApi.getInstituteAdmins().then((res: any) => {
+                console.log(res.data)
+                this.admins = res.data
+            });
         }
     },
     mounted(): any {
-      this.getUserList();
+      this.loadAdmin();
     },
     setup() {
         const rules = {
