@@ -4,7 +4,7 @@
             <template #header>
                 <div class="card-header">
                     <span>院系列表</span>
-                    <el-button type="primary" @click="handleAdd">
+                    <el-button type="primary" @click="()=>{this.$router.push('/instituteadd');}">
                         <i class="el-icon-plus"></i> 添加院系
                     </el-button>
                 </div>
@@ -15,15 +15,14 @@
                 <el-table-column prop="name" label="院系名称" width="120"/>
                 <el-table-column label="院系管理员" width="120">
                     <template #default="scope">
-                        {{ scope.row.adminId || '未设置' }}
+                        {{ scope.row.adminName || '未设置' }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="teacherNum" label="教师人数" width="100"/>
-                <el-table-column prop="studentNum" label="学生人数" width="100"/>
+                <el-table-column prop="teacherCount" label="教师人数" width="100"/>
+                <el-table-column prop="studentCount" label="学生人数" width="100"/>
                 <el-table-column label="操作" width="200">
                     <template #default="scope">
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-                        <el-button type="text" size="small" @click="handleView(scope.row)">详情</el-button>
                         <el-button type="text" size="small" @click="handleDelete(scope.row)" style="color: #f56c6c;">
                             删除
                         </el-button>
@@ -39,21 +38,15 @@
                     <el-input v-model="form.name" placeholder="请输入院系名称"/>
                 </el-form-item>
                 <el-form-item label="院系管理员" required>
-                    <el-select v-model="form.instAdmin" placeholder="请选择院系管理员" style="width: 100%">
-                        <el-option label="未设置" value=""/>
+                    <el-select v-model="form.adminId" placeholder="请选择院系管理员" style="width: 100%" :empty-values="[null,undefined]">
+                        <el-option :value="''" label="无管理员"/>
                         <el-option
-                                v-for="admin in adminOptions"
-                                :key="admin.id"
-                                :label="admin.name"
-                                :value="admin.id"
+                                v-for="item in this.admins"
+                                :key="item.id"
+                                :label="item.id"
+                                :value="item.id"
                         />
                     </el-select>
-                </el-form-item>
-                <el-form-item label="教师人数">
-                    <el-input-number v-model="form.teacherNum" :min="0" placeholder="请输入教师人数"/>
-                </el-form-item>
-                <el-form-item label="学生人数">
-                    <el-input-number v-model="form.studentNum" :min="0" placeholder="请输入学生人数"/>
                 </el-form-item>
             </el-form>
             <template #footer>
@@ -65,167 +58,85 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, ref, onMounted, computed} from 'vue';
+import {defineComponent, ref, computed} from 'vue';
 import {ElMessage, ElMessageBox} from 'element-plus';
 import request from "@/api";
-
-// 定义院系数据类型接口
-interface Institute {
-    id: number;
-    name: string;
-    instAdmin: number | string; // 存储管理员ID
-    teacherNum: number;
-    studentNum: number;
-}
-
-interface AdminOption {
-    id: number;
-    name: string;
-}
+import {instituteApi} from "@/api/institute.ts";
+import {userApi} from "@/api/user.ts";
 
 export default defineComponent({
     name: 'InstituteList',
     data(){
         return{
-            instituteList : []
+            admins:[],
+            instituteList : [],
+            showDialog: ref(false),
+            dialogTitle: ref('添加院系'),
+            isEditMode : ref(false),
+            form : {
+                id: 0,
+                name: '',
+                adminId: '',
+            }
         }
     },
     methods:{
-        loadInstituteList(){
-            request.get("/institute/list").then((res:any)=>{
+        loadAdmin() {
+            userApi.getInstituteAdmins().then((res: any) => {
                 console.log(res.data)
-                this.instituteList = res.data
-
-            })
-        }
-    },
-    mounted(): any {
-        this.loadInstituteList();
-    },
-    setup() {
-        // 模拟管理员数据（可从API获取）
-        const adminOptions = ref<AdminOption[]>([
-            {id: 1, name: '张三'},
-            {id: 2, name: '李四'},
-            {id: 3, name: '王五'},
-            {id: 4, name: '赵六'}
-        ]);
-
-        // 计算属性：为每个院系添加管理员姓名
-        const instituteListWithAdminName = computed(() => {
-            return this.instituteList.value.map(institute => ({
-                ...institute,
-                instAdminName: getAdminName(institute.instAdmin) || '未设置'
-            }));
-        });
-
-        const showDialog = ref(false);
-        const dialogTitle = ref('添加院系');
-        const isEditMode = ref(false);
-
-        // 表单数据，包含所有字段
-        const form = ref<Institute>({
-            id: 0,
-            name: '',
-            instAdmin: '',
-            teacherNum: 0,
-            studentNum: 0
-        });
-
-        const handleAdd = () => {
-            dialogTitle.value = '添加院系';
-            isEditMode.value = false;
-            resetForm();
-            showDialog.value = true;
-        };
-
-        const handleEdit = (row: Institute) => {
-            dialogTitle.value = '编辑院系';
-            isEditMode.value = true;
-            form.value = {...row};
-            showDialog.value = true;
-        };
-
-        const handleView = (row: Institute) => {
-            const adminName = getAdminName(row.instAdmin) || '未设置';
-
-            ElMessageBox.alert(`
-        <div style="text-align: left;">
-          <p><strong>院系ID：</strong>${row.id}</p>
-          <p><strong>院系名称：</strong>${row.name}</p>
-          <p><strong>院系管理员：</strong>${adminName}</p>
-          <p><strong>教师人数：</strong>${row.teacherNum}</p>
-          <p><strong>学生人数：</strong>${row.studentNum}</p>
-        </div>
-      `, '院系详情', {
-                dangerouslyUseHTMLString: true,
-                confirmButtonText: '确定'
+                this.admins = res.data
             });
-        };
-
-        const handleDelete = async (row: Institute) => {
-            try {
-                await ElMessageBox.confirm(`确定删除院系 "${row.name}" 吗？`, '警告', {
-                    type: 'warning',
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消'
-                });
-
-                this.instituteList.value = this.instituteList.value.filter(item => item.id !== row.id);
-                ElMessage.success('删除成功');
-            } catch {
-                // 用户取消删除
-            }
-        };
-
-        const handleSave = () => {
-            if (!form.value.name.trim()) {
+        },
+        loadInstituteList(){
+            instituteApi.getInstitutes().then((res:any)=>{ this.instituteList=res.data})
+        },
+        handleEdit(row: any){
+            this.dialogTitle = '编辑院系';
+            this.isEditMode = true;
+            this.form = {...row};
+            this.showDialog = true;
+        },
+        handleSave() {
+            if (!this.form.name.trim()) {
                 ElMessage.warning('请填写院系名称');
                 return;
             }
-
-            if (isEditMode.value) {
-                // 编辑
-                const index = this.instituteList.value.findIndex(item => item.id === form.value.id);
-                if (index !== -1) {
-                    this.instituteList.value[index] = {...form.value};
-                }
-                ElMessage.success('院系信息已更新');
-            } else {
-                // 新增
-                const newId = this.instituteList.value.length > 0
-                        ? Math.max(...this.instituteList.value.map(item => item.id)) + 1
-                        : 1;
-                form.value.id = newId;
-                this.instituteList.value.push({...form.value});
-                ElMessage.success('院系添加成功');
+            if (this.isEditMode) {
+                request.post("/institute/update", {...this.form}).then((res:any)=>{
+                    ElMessage.success('院系信息已更新');
+                    window.location.reload();
+                });
             }
-
-            showDialog.value = false;
-        };
-
-        const resetForm = () => {
-            form.value = {
+            this.showDialog = false;
+        },
+        async handleDelete(row:any){
+            await ElMessageBox.confirm(`确定删除院系 "${row.name}" 吗？`, '警告', {
+                type: 'warning',
+                confirmButtonText: '确定',
+                cancelButtonText: '取消'
+            }).then(()=>{
+                request.post("/institute/delete", {"id":row.id}).then((res:any)=>{
+                    ElMessage.success('院系已删除');
+                    window.location.reload();
+                ElMessage({
+                    type:'success',
+                    message:'删除成功'
+                })
+            }).catch(()=>{});
+            });
+        },
+        resetForm() {
+            this.form = {
                 id: 0,
                 name: '',
-                instAdmin: '',
-                teacherNum: 0,
-                studentNum: 0
+                adminId: ''
             };
-        };
+        }
 
-        return {
-            instituteListWithAdminName,
-            adminOptions,
-            showDialog,
-            dialogTitle,
-            form,
-            handleAdd,
-            handleEdit,
-            handleView,
-            handleDelete,
-            handleSave
-        };
+    },
+    mounted(): any {
+        this.loadInstituteList();
+        this.loadAdmin();
     }
 });
 </script>

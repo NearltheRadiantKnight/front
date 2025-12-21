@@ -38,12 +38,12 @@ export const userApi = {
   },
   // 创建院系管理员
   createInstituteAdmin: (data: any) => {
-    return post('/admin/institute', data)
+    return post('/admin/create', data)
   },
 
   // 获取院系管理员列表
   getInstituteAdmins: (params?: any) => {
-    return get('/admin/institute/list', params)
+    return get('/admin/list', params)
   },
 
   // 获取管理员详情
@@ -52,8 +52,8 @@ export const userApi = {
   },
 
   // 更新管理员信息
-  updateAdmin: (id: number, data: any) => {
-    return put(`/admin/institute/${id}`, data)
+  updateAdmin: (data: any) => {
+    return post(`/admin/update`, data)
   },
 
   // 重置密码
