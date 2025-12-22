@@ -28,33 +28,34 @@
         </div>
 
         <el-menu
-          active-text-color="#ffd04b"
-          background-color="#304156"
-          text-color="#fff"
-          class="sidebar-menu"
-          router
+        active-text-color="#ffd04b"
+        background-color="#304156"
+        text-color="#fff"
+        class="sidebar-menu"
+        router
+        :default-active="$route.path"
         >
-          <div class="menu-title">系统管理</div>
+        <div class="menu-title">系统管理</div>
 
-          <el-menu-item index="/dashboard">
-            <i class="el-icon-s-home"></i>
-            <span>首页概览</span>
-          </el-menu-item>
+        <el-menu-item index="/admin">
+          <i class="el-icon-s-home"></i>
+          <span>首页概览</span>
+        </el-menu-item>
 
-          <el-menu-item index="/institute">
-            <i class="el-icon-office-building"></i>
-            <span>院系管理</span>
-          </el-menu-item>
+        <el-menu-item index="/admin/institute">
+          <i class="el-icon-office-building"></i>
+          <span>院系管理</span>
+        </el-menu-item>
 
-          <el-menu-item index="/admin">
-            <i class="el-icon-user"></i>
-            <span>管理员管理</span>
-          </el-menu-item>
+        <el-menu-item index="/admin/adminlist">
+          <i class="el-icon-user"></i>
+          <span>管理员管理</span>
+        </el-menu-item>
 
-          <el-menu-item index="/evaluation">
-            <i class="el-icon-edit"></i>
-            <span>评价指标管理</span>
-          </el-menu-item>
+        <el-menu-item index="/admin/evaluation">
+          <i class="el-icon-edit"></i>
+          <span>评价指标管理</span>
+        </el-menu-item>
 
           <el-menu-item index="/year">
             <i class="el-icon-date"></i>
