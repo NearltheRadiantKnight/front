@@ -76,9 +76,9 @@
             <span>AI配置</span>
           </el-menu-item>
 
-          <el-menu-item index="/system">
+          <el-menu-item index="/passwordModify">
             <i class="el-icon-setting"></i>
-            <span>系统设置</span>
+            <span>修改密码</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
