@@ -35,7 +35,7 @@
             <div class="password-tips">
               <p>密码要求：</p>
               <ul>
-                <li>长度8-20位字符</li>
+                <li>长度6-20位字符</li>
               </ul>
             </div>
           </el-form-item>
@@ -98,7 +98,7 @@ export default {
         ],
         newPassword: [
           { required: true, message: '请输入新密码', trigger: 'blur' },
-          { min: 8, max: 20, message: '密码长度8-20位', trigger: 'blur' }
+          { min: 6, max: 20, message: '密码长度6-20位', trigger: 'blur' }
         ],
         confirmPassword: [
           { required: true, message: '请确认新密码', trigger: 'blur' },
@@ -119,41 +119,97 @@ export default {
   },
   methods: {
     // 提交修改
-    handleSubmit() {
-      this.$refs.passwordForm.validate(async (valid) => {
-        if (valid) {
-          try {
-            this.loading = true;
+    async handleSubmit() {
+      try {
+        const valid = await this.$refs.passwordForm.validate();
+        if (!valid) return;
 
-            // 调用修改密码接口
-            const response = await userApi.changePassword({
-              userId: this.getCurrentUserId(),
-              oldPassword: this.form.oldPassword,
-              newPassword: this.form.newPassword
-            });
+        this.loading = true;
+        console.log('提交修改密码请求...');
 
-            if (response.data.code === 200) {
-              this.$message.success('密码修改成功，请重新登录');
+        // 获取用户ID
+        const userId = this.getCurrentUserId();
+        console.log('用户ID:', userId);
 
-              // 延迟跳转
-              setTimeout(() => {
-                this.logout();
-              }, 1500);
-            } else {
-              this.$message.error(response.data.message || '密码修改失败');
-            }
-          } catch (error) {
-            console.error('修改密码失败:', error);
-            if (error.response && error.response.data) {
-              this.$message.error(error.response.data.message || '密码修改失败');
-            } else {
-              this.$message.error('网络错误，请重试');
-            }
-          } finally {
-            this.loading = false;
-          }
+        if (!userId) {
+          this.$message.error('未找到用户ID，请重新登录');
+          this.logout();
+          return;
         }
-      });
+
+        // 调试：打印请求数据
+        const requestData = {
+          userId: userId,
+          oldPassword: this.form.oldPassword,
+          newPassword: this.form.newPassword
+        };
+        console.log('请求数据:', requestData);
+
+        // 调用修改密码接口
+        const response = await userApi.changePassword(requestData);
+
+        console.log('完整响应对象:', response);
+        console.log('响应类型:', typeof response);
+
+        // 处理可能的响应结构
+        let result = null;
+
+        // 处理不同的响应结构
+        if (response && typeof response === 'object') {
+          // 1. 如果 response 直接是 Result 对象
+          if ('code' in response && 'message' in response) {
+            result = response;
+          }
+          // 2. 如果 response 包含 data 属性 (axios 默认包装)
+          else if (response.data) {
+            result = response.data;
+          }
+          // 3. 如果 response 是其他结构
+          else {
+            result = response;
+          }
+        } else if (response === null || response === undefined) {
+          console.warn('API 返回 null 或 undefined');
+          this.$message.error('服务器无响应，请检查网络连接');
+          this.loading = false;
+          return;
+        }
+
+        console.log('处理后的结果:', result);
+
+        if (result && result.code === 200) {
+          this.$message.success(result.message || '密码修改成功，请重新登录');
+          setTimeout(() => this.logout(), 1500);
+        } else if (result) {
+          const errorMsg = result.message || result.msg || '密码修改失败';
+          this.$message.error(errorMsg);
+        } else {
+          this.$message.error('服务器返回格式错误');
+        }
+      } catch (error) {
+        console.error('修改密码失败 - 详细错误:', error);
+
+        // 更详细的错误信息
+        if (error.response) {
+          // 服务器返回了错误状态码
+          console.error('响应状态:', error.response.status);
+          console.error('响应头:', error.response.headers);
+          console.error('响应数据:', error.response.data);
+
+          const res = error.response.data || {};
+          this.$message.error(res.message || res.msg || `服务器错误 (${error.response.status})`);
+        } else if (error.request) {
+          // 请求已发送但无响应
+          console.error('请求对象:', error.request);
+          this.$message.error('服务器无响应，请检查网络连接或服务器状态');
+        } else {
+          // 请求配置错误
+          console.error('错误信息:', error.message);
+          this.$message.error('请求配置错误: ' + error.message);
+        }
+      } finally {
+        this.loading = false;
+      }
     },
 
     // 重置表单
@@ -168,7 +224,28 @@ export default {
 
     // 获取当前用户ID
     getCurrentUserId() {
-      return localStorage.getItem('userId') || sessionStorage.getItem('userId') || '';
+      // 方式1：从存储中获取用户ID
+      let userId = localStorage.getItem('userId') ||
+          sessionStorage.getItem('userId') ||
+          localStorage.getItem('id') ||
+          sessionStorage.getItem('id');
+
+      // 方式2：如果没有存储ID，从用户信息对象中获取
+      if (!userId) {
+        try {
+          const userInfoStr = localStorage.getItem('userInfo') ||
+              sessionStorage.getItem('userInfo');
+          if (userInfoStr) {
+            const userInfo = JSON.parse(userInfoStr);
+            userId = userInfo.id || userInfo.userId || userInfo.username;
+          }
+        } catch (e) {
+          console.warn('解析用户信息失败:', e);
+        }
+      }
+
+      console.log('获取到的用户ID:', userId || '未获取到');
+      return userId || '';
     },
 
     // 退出登录

@@ -52,6 +52,11 @@ const router = createRouter({
           component: () => import('@/components/views/super-admin/InstituteAdd.vue')
         },
         {
+          path: 'passwordModify',
+          name: 'SuperAdminPasswordModify',
+          component: () => import('@/components/views/super-admin/passwordModify.vue')
+        },
+        {
           path: '/:pathMatch(.*)*',
           name:'SuperAdminNotFound',
           component:()=>import('@/components/views/super-admin/Other.vue')
