@@ -52,6 +52,11 @@ const router = createRouter({
           component: () => import('@/components/views/super-admin/InstituteAdd.vue')
         },
         {
+          path: 'defenseYear',
+          name: 'SuperAdmindenfenseYear',
+          component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
+        },
+        {
           path: 'passwordModify',
           name: 'SuperAdminPasswordModify',
           component: () => import('@/components/views/super-admin/passwordModify.vue')

@@ -328,8 +328,8 @@ export default defineComponent({
       localStorage.setItem('userType', data.userType);
 
       // 如果是教师登录，存储答辩年份
-      if (loginType.value === 'teacher' && teacherForm.value.defenseYear) {
-        localStorage.setItem('defenseYear', teacherForm.value.defenseYear.toString());
+      if (loginType.value === 'teacher' && teacherForm.value.year) {
+        localStorage.setItem('defenseYear', teacherForm.value.year.toString());
       }
 
       if (data.userInfo) {
@@ -341,10 +341,10 @@ export default defineComponent({
 
       // 跳转到对应页面
       const routeMap: Record<string, string> = {
-        'admin': 'SuperAdmin',
-        'instAdmin': 'InstAdmin',
-        'defenseLeader': 'DefenseLeader',
-        'teacher': 'Teacher'
+        'admin': 'SuperAdminHome',
+        'instAdmin': 'InstAdminHome',
+        'defenseLeader': 'DefenseLeaderHome',
+        'teacher': 'TeacherHome'
       };
 
       const routeName = routeMap[data.userType];

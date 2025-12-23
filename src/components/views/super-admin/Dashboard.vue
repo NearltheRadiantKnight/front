@@ -57,7 +57,7 @@
             <span>评价指标管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/year">
+          <el-menu-item index="/admin/defenseyear">
             <i class="el-icon-date"></i>
             <span>答辩年份管理</span>
           </el-menu-item>
