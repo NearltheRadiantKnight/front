@@ -1,6 +1,5 @@
 import {createRouter, createWebHistory} from 'vue-router'
 
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -53,6 +52,11 @@ const router = createRouter({
           component: () => import('@/components/views/super-admin/InstituteAdd.vue')
         },
         {
+          path: 'defenseYear',
+          name: 'SuperAdmindenfenseYear',
+          component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
+        },
+        {
           path: 'passwordModify',
           name: 'SuperAdminPasswordModify',
           component: () => import('@/components/views/super-admin/passwordModify.vue')
@@ -94,11 +98,11 @@ const router = createRouter({
               component: () => import('@/components/views/inst-admin/TeacherManagement.vue')
             },
             // 答辩管理
-            {
-              path: 'defense',
-              name: 'DefenseYearManagement',
-              component: () => import('@/components/views/inst-admin/DefenseYearManagement.vue')
-            },
+             {
+                  path: 'defense',
+                  name: 'DefenseYearManagement',
+                  component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
+                },
             {
                     path: 'photo-upload',
                     name: 'ProfilePhotoUpload',

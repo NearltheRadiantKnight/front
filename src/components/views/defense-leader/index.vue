@@ -7,11 +7,11 @@
 
     <div class="alert-card">
       <el-alert
-        title="答辩组长职责"
-        type="info"
-        description="您作为答辩组长，需要负责组织答辩小组、分配评审任务、主持答辩会议、审核答辩结果等工作。"
-        show-icon
-        :closable="false"
+          title="答辩组长职责"
+          type="info"
+          description="您作为答辩组长，需要负责组织答辩小组、分配评审任务、主持答辩会议、审核答辩结果等工作。"
+          show-icon
+          :closable="false"
       />
     </div>
 

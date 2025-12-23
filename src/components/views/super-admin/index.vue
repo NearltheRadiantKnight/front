@@ -1,9 +1,7 @@
 <script lang="ts">
-import { defineComponent } from 'vue'
-import { ElMessage } from 'element-plus'
-import { instituteApi } from '@/api/institute.ts'
-import { userApi } from "@/api/user.ts"
 import { useRouter } from 'vue-router'
+import {instituteApi} from '@/api/institute.ts'
+import {userApi} from "@/api/user.ts";
 
 const router = useRouter()
 

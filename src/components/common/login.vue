@@ -69,7 +69,6 @@
                       </el-button>
                     </template>
                   </el-input>
-                  <div class="form-tip">教师编号为纯数字，输入后点击刷新按钮获取可用年份</div>
                 </el-form-item>
                 <el-form-item label="密码：" prop="password">
                   <el-input v-model="teacherForm.password" placeholder="请输入密码" type="password"
@@ -77,7 +76,7 @@
                 </el-form-item>
                 <el-form-item label="答辩年份：" prop="defenseYear">
                   <el-select
-                      v-model="teacherForm.defenseYear"
+                      v-model="teacherForm.year"
                       placeholder="请先输入教师编号获取可用年份"
                       style="width: 100%"
                       :loading="yearLoading"
@@ -118,102 +117,119 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
 import request from '@/api';
-import { useRouter } from 'vue-router';
+
+// 定义接口
+interface AdminForm {
+  username: string;
+  password: string;
+}
+
+interface TeacherForm {
+  username: string;
+  password: string;
+  year: number | null;
+}
 
 export default defineComponent({
   name: 'Login',
   components: {
     Refresh
   },
-  data() {
-    return {
-      loginType: 'admin' as 'admin' | 'teacher',
-      adminForm: {
-        username: '',
-        password: ''
-      },
-      teacherForm: {
-        username: '',
-        password: '',
-        defenseYear: null as number | null
-      },
-      loading: false,
-      yearLoading: false,
-      yearOptions: [] as number[],
+  setup() {
+    const router = useRouter();
 
-      adminRules: {
-        username: [
-          { required: true, message: '请输入用户名', trigger: 'blur' }
-        ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
-        ]
-      },
+    // 登录类型
+    const loginType = ref('admin');
 
-      teacherRules: {
-        username: [
-          { required: true, message: '请输入教师编号', trigger: 'blur' },
-          { pattern: /^\d+$/, message: '教师编号必须为纯数字', trigger: 'blur' }
-        ],
-        password: [
-          { required: true, message: '请输入密码', trigger: 'blur' }
-        ],
-        defenseYear: [
-          { required: true, message: '请选择答辩年份', trigger: 'change' }
-        ]
+    // 管理员表单
+    const adminFormRef = ref();
+    const adminForm = ref<AdminForm>({
+      username: '',
+      password: ''
+    });
+
+    // 教师表单
+    const teacherFormRef = ref();
+    const teacherForm = ref<TeacherForm>({
+      username: '',
+      password: '',
+      year: null
+    });
+
+    // 加载状态
+    const loading = ref(false);
+    const yearLoading = ref(false);
+
+    // 年份选项
+    const yearOptions = ref<number[]>([]);
+
+    // 验证规则
+    const adminRules = {
+      username: [
+        { required: true, message: '请输入用户名', trigger: 'blur' }
+      ],
+      password: [
+        { required: true, message: '请输入密码', trigger: 'blur' }
+      ]
+    };
+
+    const teacherRules = {
+      username: [
+        { required: true, message: '请输入教师编号', trigger: 'blur' }
+      ],
+      password: [
+        { required: true, message: '请输入密码', trigger: 'blur' }
+      ],
+      defenseYear: [
+        { required: true, message: '请选择答辩年份', trigger: 'change' }
+      ]
+    };
+
+    // 教师编号失去焦点时获取年份
+    const handleTeacherIdBlur = () => {
+      if (teacherForm.value.username && /^\d+$/.test(teacherForm.value.username)) {
+        fetchTeacherDefenseYears();
       }
     };
-  },
-  mounted() {
-    // 页面加载时可以选择清空本地存储
-    localStorage.removeItem('token');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('defenseYear');
-    localStorage.removeItem('userInfo');
-  },
-  methods: {
-    handleTeacherIdBlur() {
-      if (this.teacherForm.username && /^\d+$/.test(this.teacherForm.username)) {
-        this.fetchTeacherDefenseYears();
-      }
-    },
 
-    async fetchTeacherDefenseYears() {
-      const teacherId = this.teacherForm.username.trim();
+    // 获取教师可用的答辩年份
+    const fetchTeacherDefenseYears = async () => {
+      const teacherId = teacherForm.value.username.trim();
 
       if (!teacherId || !/^\d+$/.test(teacherId)) {
         return;
       }
 
       try {
-        this.yearLoading = true;
-        this.yearOptions = [];
-        this.teacherForm.defenseYear = null;
+        yearLoading.value = true;
+        yearOptions.value = [];
+        teacherForm.value.year = null;
 
         const response = await request.get(`/defenseYears/${teacherId}`);
 
         if (response.code === 200 && response.data && response.data.length > 0) {
           // 降序排列年份
-          this.yearOptions = response.data.sort((a: number, b: number) => b - a);
+          yearOptions.value = response.data.sort((a: number, b: number) => b - a);
           // 默认选中最新年份
-          this.teacherForm.defenseYear = this.yearOptions[0];
+          teacherForm.value.year = yearOptions.value[0];
 
-          if (this.yearOptions.length === 1) {
-            ElMessage.success(`获取到1个可用年份：${this.yearOptions[0]}年`);
+          if (yearOptions.value.length === 1) {
+            ElMessage.success(`获取到1个可用年份：${yearOptions.value[0]}年`);
           } else {
-            ElMessage.success(`获取到${this.yearOptions.length}个可用年份`);
+            ElMessage.success(`获取到${yearOptions.value.length}个可用年份`);
           }
         } else {
-          this.yearOptions = [];
+          yearOptions.value = [];
           ElMessage.warning('该教师暂无可用答辩年份');
         }
       } catch (error: any) {
         console.error('获取答辩年份失败:', error);
-        this.yearOptions = [];
+        yearOptions.value = [];
         let errorMessage = '获取答辩年份失败';
 
         if (error.response) {
@@ -225,31 +241,32 @@ export default defineComponent({
 
         ElMessage.error(errorMessage);
       } finally {
-        this.yearLoading = false;
+        yearLoading.value = false;
       }
-    },
+    };
 
-    handleLoginTypeChange() {
+    // 登录类型切换处理
+    const handleLoginTypeChange = () => {
       // 清空表单
-      this.adminForm = { username: '', password: '' };
-      this.teacherForm = { username: '', password: '', defenseYear: null };
-      this.yearOptions = [];
-    },
+      adminForm.value = { username: '', password: '' };
+      teacherForm.value = { username: '', password: '', year: null };
+      yearOptions.value = [];
+    };
 
-    handleAdminLogin() {
-      const adminFormRef = this.$refs.adminFormRef as any;
-      if (!adminFormRef) return;
+    // 管理员登录
+    const handleAdminLogin = () => {
+      if (!adminFormRef.value) return;
 
-      adminFormRef.validate((valid: boolean) => {
+      adminFormRef.value.validate((valid: boolean) => {
         if (!valid) return;
 
-        this.loading = true;
+        loading.value = true;
 
         // 管理员登录接口
-        request.post('/login', this.adminForm)
+        request.post('/login', adminForm.value)
             .then((res: any) => {
               if (res.code === 200) {
-                this.handleLoginSuccess(res.data);
+                handleLoginSuccess(res.data);
               } else {
                 ElMessage.error(res.message || '管理员登录失败');
               }
@@ -259,37 +276,37 @@ export default defineComponent({
               ElMessage.error(error.response?.data?.message || '管理员登录失败');
             })
             .finally(() => {
-              this.loading = false;
+              loading.value = false;
             });
       });
-    },
+    };
 
-    handleTeacherLogin() {
-      const teacherFormRef = this.$refs.teacherFormRef as any;
-      if (!teacherFormRef) return;
+    // 教师登录
+    const handleTeacherLogin = () => {
+      if (!teacherFormRef.value) return;
 
-      teacherFormRef.validate((valid: boolean) => {
+      teacherFormRef.value.validate((valid: boolean) => {
         if (!valid) return;
 
         // 确保已选择年份
-        if (!this.teacherForm.defenseYear) {
+        if (!teacherForm.value.year) {
           ElMessage.error('请选择答辩年份');
           return;
         }
 
         // 确保有可用年份
-        if (this.yearOptions.length === 0) {
+        if (yearOptions.value.length === 0) {
           ElMessage.error('请先获取可用答辩年份');
           return;
         }
 
-        this.loading = true;
+        loading.value = true;
 
         // 教师登录接口
-        request.post('/loginWithYear', this.teacherForm)
+        request.post('/loginWithYear', teacherForm.value)
             .then((res: any) => {
               if (res.code === 200) {
-                this.handleLoginSuccess(res.data);
+                handleLoginSuccess(res.data);
               } else {
                 ElMessage.error(res.message || '教师登录失败');
               }
@@ -299,19 +316,20 @@ export default defineComponent({
               ElMessage.error(error.response?.data?.message || '教师登录失败');
             })
             .finally(() => {
-              this.loading = false;
+              loading.value = false;
             });
       });
-    },
+    };
 
-    handleLoginSuccess(data: any) {
+    // 登录成功处理
+    const handleLoginSuccess = (data: any) => {
       // 存储登录信息
       localStorage.setItem('token', data.token || `mock-token-${Date.now()}`);
       localStorage.setItem('userType', data.userType);
 
       // 如果是教师登录，存储答辩年份
-      if (this.loginType === 'teacher' && this.teacherForm.defenseYear) {
-        localStorage.setItem('defenseYear', this.teacherForm.defenseYear.toString());
+      if (loginType.value === 'teacher' && teacherForm.value.year) {
+        localStorage.setItem('defenseYear', teacherForm.value.year.toString());
       }
 
       if (data.userInfo) {
@@ -323,19 +341,46 @@ export default defineComponent({
 
       // 跳转到对应页面
       const routeMap: Record<string, string> = {
-        'admin': 'SuperAdminDashboard',
-        'instAdmin': 'InstAdminDashboard',
-        'defenseLeader': 'DefenseLeaderDashboard',
-        'teacher': 'TeacherDashboard'
+        'admin': 'SuperAdminHome',
+        'instAdmin': 'InstAdminHome',
+        'defenseLeader': 'DefenseLeaderHome',
+        'teacher': 'TeacherHome'
       };
 
       const routeName = routeMap[data.userType];
       if (routeName) {
-        this.$router.push({ name: routeName });
+        router.push({ name: routeName });
       } else {
         ElMessage.error('未知用户类型');
       }
-    }
+    };
+
+    // 初始化
+    onMounted(() => {
+      // 页面加载时可以选择清空本地存储
+      localStorage.removeItem('token');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('defenseYear');
+      localStorage.removeItem('userInfo');
+    });
+
+    return {
+      loginType,
+      adminFormRef,
+      adminForm,
+      teacherFormRef,
+      teacherForm,
+      loading,
+      yearLoading,
+      yearOptions,
+      adminRules,
+      teacherRules,
+      handleTeacherIdBlur,
+      fetchTeacherDefenseYears,
+      handleLoginTypeChange,
+      handleAdminLogin,
+      handleTeacherLogin
+    };
   }
 });
 </script>

@@ -1,0 +1,152 @@
+<template>
+  <el-dialog
+      v-model="visible"
+      :title="isEdit ? '编辑答辩组' : '新增答辩组'"
+      width="500px"
+      @closed="resetForm"
+  >
+    <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="100px"
+    >
+      <el-form-item label="答辩组名称" prop="name">
+        <el-input
+            v-model="formData.name"
+            placeholder="请输入答辩组名称，如：第一答辩组"
+        ></el-input>
+      </el-form-item>
+      <el-form-item label="组长" prop="adminId">
+        <el-select
+            v-model="formData.adminId"
+            placeholder="请选择答辩组组长"
+            style="width: 100%"
+            filterable
+            clearable
+        >
+          <el-option
+              v-for="teacher in teachers"
+              :key="teacher.id"
+              :label="`${teacher.realName} (${teacher.id})`"
+              :value="teacher.id"
+          ></el-option>
+        </el-select>
+      </el-form-item>
+      <el-form-item label="最大学生数" prop="maxStudents">
+        <el-input-number
+            v-model.number="formData.maxStudents"
+            :min="1"
+            :max="30"
+            placeholder="请输入最大学生数"
+            style="width: 100%"
+        ></el-input-number>
+      </el-form-item>
+      <el-form-item label="状态" prop="status">
+        <el-radio-group v-model="formData.status">
+          <el-radio :label="1">启用</el-radio>
+          <el-radio :label="0">停用</el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="visible = false">取消</el-button>
+        <el-button type="primary" @click="handleSubmit" :loading="submitting">
+          确定
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
+</template>
+
+<script>
+export default {
+  name: 'GroupFormDialog',
+  props: {
+    modelValue: {
+      type: Boolean,
+      default: false
+    },
+    formData: {
+      type: Object,
+      default: () => ({
+        id: null,
+        year: '',
+        name: '',
+        adminId: '',
+        maxStudents: 10,
+        status: 1
+      })
+    },
+    teachers: {
+      type: Array,
+      default: () => []
+    },
+    year: {
+      type: Object,
+      default: null
+    },
+    isEdit: {
+      type: Boolean,
+      default: false
+    }
+  },
+  emits: ['update:modelValue', 'submit'],
+  data() {
+    return {
+      submitting: false,
+      rules: {
+        name: [
+          { required: true, message: '请输入答辩组名称', trigger: 'blur' }
+        ],
+        adminId: [
+          { required: true, message: '请选择组长', trigger: 'change' }
+        ],
+        maxStudents: [
+          { required: true, message: '请设置最大学生数', trigger: 'blur' },
+          { type: 'number', min: 1, max: 30, message: '学生数范围1-30', trigger: 'blur' }
+        ]
+      }
+    }
+  },
+  computed: {
+    visible: {
+      get() {
+        return this.modelValue
+      },
+      set(value) {
+        this.$emit('update:modelValue', value)
+      }
+    }
+  },
+  methods: {
+    handleSubmit() {
+      this.$refs.formRef.validate((valid) => {
+        if (valid) {
+          this.submitting = true
+          const submitData = {
+            ...this.formData,
+            year: this.year?.year || this.formData.year
+          }
+          this.$emit('submit', submitData)
+          this.submitting = false
+          this.visible = false
+        }
+      })
+    },
+
+    resetForm() {
+      this.$refs.formRef?.resetFields()
+    }
+  }
+}
+</script>
+
+<style scoped>
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+</style>

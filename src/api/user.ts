@@ -25,7 +25,7 @@ export const userApi = {
 
   // 修改密码
   changePassword: (data: { userId: string; oldPassword: string; newPassword: string }) => {
-    return post('/user/changePassword', data)
+    return post('/api/changePassword', data)
   },
 
   // 获取用户信息
