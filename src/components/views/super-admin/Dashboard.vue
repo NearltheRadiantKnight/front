@@ -28,30 +28,31 @@
         </div>
 
         <el-menu
-          active-text-color="#ffd04b"
-          background-color="#304156"
-          text-color="#fff"
-          class="sidebar-menu"
-          router
+            active-text-color="#ffd04b"
+            background-color="#304156"
+            text-color="#fff"
+            class="sidebar-menu"
+            router
+            :default-active="$route.path"
         >
           <div class="menu-title">系统管理</div>
 
-          <el-menu-item index="/dashboard">
+          <el-menu-item index="/admin">
             <i class="el-icon-s-home"></i>
             <span>首页概览</span>
           </el-menu-item>
 
-          <el-menu-item index="/institute">
+          <el-menu-item index="/admin/institute">
             <i class="el-icon-office-building"></i>
             <span>院系管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/admin">
+          <el-menu-item index="/admin/adminlist">
             <i class="el-icon-user"></i>
             <span>管理员管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/evaluation">
+          <el-menu-item index="/admin/evaluation">
             <i class="el-icon-edit"></i>
             <span>评价指标管理</span>
           </el-menu-item>
@@ -76,9 +77,9 @@
             <span>AI配置</span>
           </el-menu-item>
 
-          <el-menu-item index="/system">
+          <el-menu-item index="/admin/passwordModify">
             <i class="el-icon-setting"></i>
-            <span>系统设置</span>
+            <span>修改密码</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
