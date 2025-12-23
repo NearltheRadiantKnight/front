@@ -1,5 +1,6 @@
 import {createRouter, createWebHistory} from 'vue-router'
 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -79,7 +80,34 @@ const router = createRouter({
           path: 'index',
           name: 'InstAdminIndex',
           component: () => import('@/components/views/inst-admin/index.vue')
-        }
+        },
+        // 学生管理
+            {
+              path: 'students',
+              name: 'StudentManagement',
+              component: () => import('@/components/views/inst-admin/StudentManagement.vue')
+            },
+            // 教师管理
+            {
+              path: 'teachers',
+              name: 'TeacherManagement',
+              component: () => import('@/components/views/inst-admin/TeacherManagement.vue')
+            },
+            // 答辩管理
+            {
+              path: 'defense',
+              name: 'DefenseYearManagement',
+              component: () => import('@/components/views/inst-admin/DefenseYearManagement.vue')
+            },
+            {
+                    path: 'photo-upload',
+                    name: 'ProfilePhotoUpload',
+                    component: () => import('@/components/views/inst-admin/ProfilePhotoUpload.vue'),
+                    meta: {
+                      title: '系主任照片上传'
+                    }
+            }
+
       ]
     },
 

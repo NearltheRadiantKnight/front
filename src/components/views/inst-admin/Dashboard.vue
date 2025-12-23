@@ -1,13 +1,24 @@
 <template>
   <div class="inst-admin-dashboard">
-    <!-- 导航栏 -->
-    <el-header class="header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+    <!-- 导航栏保持不变 -->
+    <el-header class="header">
       <div class="header-left">
         <span class="system-title">答辩管理系统 - 院系管理员</span>
       </div>
       <div class="header-right">
         <el-tag type="success">院系管理员</el-tag>
         <span class="welcome">欢迎，{{ adminName }}</span>
+
+        <!-- 添加上传照片按钮 -->
+        <el-button
+          type="text"
+          @click="goToPhotoUpload"
+          class="upload-btn"
+          title="上传照片"
+        >
+          <i class="el-icon-camera"></i> 上传照片
+        </el-button>
+
         <el-button type="text" @click="logout">退出登录</el-button>
       </div>
     </el-header>
@@ -17,76 +28,70 @@
       <!-- 侧边栏 -->
       <el-aside width="280px" class="sidebar">
         <div class="user-info">
-          <div class="avatar">
-            <i class="el-icon-school"></i>
+          <div class="avatar" @click="goToPhotoUpload">
+            <!-- 显示照片或默认图标 -->
+            <img
+              v-if="userPhoto"
+              :src="userPhoto"
+              alt="系主任照片"
+              class="profile-photo"
+              title="点击上传/更换照片"
+            />
+            <i v-else class="el-icon-school"></i>
           </div>
           <div class="info">
             <p class="name">{{ adminName }}</p>
             <p class="role">{{ instituteName }}</p>
             <p class="time">登录时间: {{ loginTime }}</p>
-            <!-- 添加上传签名按钮 -->
             <el-button
-                type="primary"
-                size="small"
-                @click="uploadSignatureDialogVisible = true"
-                style="margin-top: 10px;"
+              type="text"
+              size="small"
+              @click="goToPhotoUpload"
+              class="photo-upload-link"
             >
-              <i class="el-icon-upload"></i>上传签名
+              <i class="el-icon-camera"></i> 上传/更换照片
             </el-button>
           </div>
         </div>
 
         <el-menu
-            active-text-color="#ffd04b"
-            background-color="#304156"
-            text-color="#fff"
-            class="sidebar-menu"
-            router
-            :default-active="$route.path"
+          active-text-color="#ffd04b"
+          background-color="#304156"
+          text-color="#fff"
+          class="sidebar-menu"
+          router
+          :default-active="activeMenu"
         >
           <div class="menu-title">院系管理</div>
 
+          <!-- 首页 -->
           <el-menu-item index="/inst-admin">
             <i class="el-icon-s-home"></i>
             <span>院系概览</span>
           </el-menu-item>
 
           <!-- 学生管理 -->
-          <el-submenu index="student">
-            <template #title>
-              <i class="el-icon-user-solid"></i>
-              <span>学生管理</span>
-            </template>
-            <el-menu-item index="/inst-admin/student-list">学生列表</el-menu-item>
-            <el-menu-item index="/inst-admin/student-import">导入学生数据</el-menu-item>
-          </el-submenu>
+          <el-menu-item index="/inst-admin/students">
+            <i class="el-icon-user-solid"></i>
+            <span>学生管理</span>
+          </el-menu-item>
 
           <!-- 教师管理 -->
-          <el-submenu index="teacher">
-            <template #title>
-              <i class="el-icon-s-custom"></i>
-              <span>教师管理</span>
-            </template>
-            <el-menu-item index="/inst-admin/teacher-list">教师列表</el-menu-item>
-            <el-menu-item index="/inst-admin/teacher-add">添加教师</el-menu-item>
-            <el-menu-item index="/inst-admin/teacher-import">导入教师数据</el-menu-item>
-          </el-submenu>
+          <el-menu-item index="/inst-admin/teachers">
+            <i class="el-icon-s-custom"></i>
+            <span>教师管理</span>
+          </el-menu-item>
 
-          <!-- 答辩分组管理 -->
-          <el-submenu index="defense-group">
-            <template #title>
-              <i class="el-icon-s-operation"></i>
-              <span>答辩分组管理</span>
-            </template>
-            <el-menu-item index="/inst-admin/group-list">答辩小组列表</el-menu-item>
-            <el-menu-item index="/inst-admin/group-create">创建答辩小组</el-menu-item>
-            <el-menu-item index="/inst-admin/group-assign">分配学生到小组</el-menu-item>
-            <el-menu-item index="/inst-admin/group-leader">指定答辩组长</el-menu-item>
-          </el-submenu>
+          <!-- 答辩管理 -->
+          <el-menu-item index="/inst-admin/defense">
+            <i class="el-icon-date"></i>
+            <span>答辩管理</span>
+          </el-menu-item>
 
-          <el-menu-item index="/inst-admin/defense-arrangement">
-            <i class="el-icon-tickets"></i>
-            <span>答辩安排</span>
+          <!-- 新增：照片管理 -->
+          <el-menu-item index="/inst-admin/photo-upload">
+            <i class="el-icon-camera"></i>
+            <span>照片管理</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -95,54 +100,89 @@
         <router-view/>
       </el-main>
     </el-container>
-
-    <!-- 上传系主任签名对话框 -->
-    <el-dialog
-        title="上传系主任签名图片"
-        v-model="uploadSignatureDialogVisible"
-        width="400px"
-        center
-    >
-      <el-upload
-          class="signature-upload"
-          drag
-          action="/api/upload/signature"
-          :on-success="handleSignatureUploadSuccess"
-          :on-error="handleSignatureUploadError"
-          :show-file-list="false"
-          accept=".jpg,.jpeg,.png,.gif"
-      >
-        <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将签名图片拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip" slot="tip">只能上传jpg/png/gif文件，且不超过2MB</div>
-      </el-upload>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="uploadSignatureDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="uploadSignatureDialogVisible = false">确定</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { ElMessage, ElMessageBox } from 'element-plus';
+import { defineComponent, ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessageBox } from 'element-plus';
+import request from '@/api';
 
 export default defineComponent({
   name: 'InstAdminDashboard',
-  data() {
-    return {
-      adminName: '院系管理员',
-      instituteName: '计算机学院',
-      loginTime: '',
-      uploadSignatureDialogVisible: false,
+  setup() {
+    const router = useRouter();
+
+    const adminName = ref('院系管理员');
+    const instituteName = ref('计算机学院');
+    const loginTime = ref('');
+    const userPhoto = ref('');
+
+    // 计算当前激活的菜单项
+    const activeMenu = computed(() => {
+      const path = router.currentRoute.value.path;
+
+      // 处理嵌套路由的激活状态
+      if (path === '/inst-admin' || path === '/inst-admin/index') {
+        return '/inst-admin';
+      }
+
+      return path;
+    });
+
+    // 加载用户照片
+    const loadUserPhoto = async () => {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          const info = JSON.parse(userInfo);
+          const userId = info.id || info.user_id || '';
+          const instituteId = info.institute_id || info.instId || 1;
+
+          const response = await request.get('/api/profile/current-photo', {
+            params: {
+              user_id: userId,
+              institute_id: instituteId
+            }
+          });
+
+          if (response.code === 200 && response.data.photo_url) {
+            userPhoto.value = response.data.photo_url;
+          }
+        }
+      } catch (error) {
+        console.error('加载用户照片失败:', error);
+      }
     };
-  },
-  methods: {
-    // 退出登录
-    logout() {
+
+    onMounted(() => {
+      console.log('院系管理员Dashboard已加载');
+      loginTime.value = new Date().toLocaleString();
+
+      // 从本地存储获取用户信息
+      const userInfo = localStorage.getItem('userInfo');
+      if (userInfo) {
+        try {
+          const info = JSON.parse(userInfo);
+          // 调整为常见数据库字段名
+          adminName.value = info.name || info.username || info.real_name || info.realName || '院系管理员';
+          instituteName.value = info.institute_name || info.department || '计算机学院';
+        } catch (error) {
+          console.error('解析用户信息失败:', error);
+        }
+      }
+
+      // 加载用户照片
+      loadUserPhoto();
+    });
+
+    // 跳转到照片上传页面
+    const goToPhotoUpload = () => {
+      router.push('/inst-admin/photo-upload');
+    };
+
+    const logout = () => {
       ElMessageBox.confirm('确定要退出登录吗？', '提示', {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -150,24 +190,18 @@ export default defineComponent({
       }).then(() => {
         localStorage.clear();
         window.location.href = '/';
-      }).catch(() => {
-        // 取消操作
       });
-    },
+    };
 
-    // 上传签名成功
-    handleSignatureUploadSuccess(response: any) {
-      ElMessage.success('系主任签名上传成功');
-    },
-
-    // 上传签名失败
-    handleSignatureUploadError() {
-      ElMessage.error('系主任签名上传失败');
-    }
-  },
-  mounted() {
-    console.log('院系管理员Dashboard已加载');
-    this.loginTime = new Date().toLocaleString();
+    return {
+      adminName,
+      instituteName,
+      loginTime,
+      userPhoto,
+      activeMenu,
+      goToPhotoUpload,
+      logout
+    };
   }
 });
 </script>
@@ -241,17 +275,18 @@ export default defineComponent({
 
 .info .role {
   font-size: 12px;
-  color: #ccc;
+  color: #fff;
   margin: 3px 0;
   background: #f5576c;
-  padding: 2px 8px;
-  border-radius: 10px;
+  padding: 2px 10px;
+  border-radius: 12px;
   display: inline-block;
+  font-weight: 500;
 }
 
 .info .time {
   font-size: 12px;
-  color: #999;
+  color: #ccc;
   margin-top: 8px;
 }
 
@@ -268,12 +303,88 @@ export default defineComponent({
   border-right: none;
 }
 
+.sidebar-menu .el-menu-item {
+  transition: all 0.3s;
+}
+
+.sidebar-menu .el-menu-item:hover {
+  background-color: #263445 !important;
+}
+
+.sidebar-menu .el-menu-item.is-active {
+  background-color: #1f2d3d !important;
+  border-left: 3px solid #f5576c;
+}
+
 .content {
   padding: 20px;
   overflow-y: auto;
+  background: #f0f2f5;
 }
 
-.signature-upload {
-  text-align: center;
+/* 菜单图标样式优化 */
+.sidebar-menu i {
+  margin-right: 10px;
+  font-size: 16px;
+  vertical-align: middle;
+}
+.header-right .upload-btn {
+  color: #fff;
+  font-size: 14px;
+  padding: 0 8px;
+}
+
+.header-right .upload-btn:hover {
+  color: #ffd04b;
+}
+
+.header-right .upload-btn i {
+  margin-right: 5px;
+}
+
+/* 头像区域样式 */
+.user-info .avatar {
+  cursor: pointer;
+  position: relative;
+}
+
+.user-info .avatar:hover::after {
+  content: '点击上传/更换照片';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  border-radius: 50%;
+}
+
+.profile-photo {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.photo-upload-link {
+  color: #ffd04b !important;
+  margin-top: 5px;
+  font-size: 12px;
+  padding: 2px 5px;
+}
+
+.photo-upload-link:hover {
+  color: #fff !important;
+  background: rgba(255, 208, 75, 0.1);
+  border-radius: 4px;
+}
+
+.photo-upload-link i {
+  margin-right: 3px;
 }
 </style>
