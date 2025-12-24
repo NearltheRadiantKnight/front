@@ -1,10 +1,8 @@
-[file name]: ProfilePhotoUpload.vue
-[file content begin]
 <template>
   <div class="simple-photo-upload">
     <el-page-header @back="goBack" title="返回">
       <template #content>
-        <span class="page-header-title">系主任签名照上传</span>
+        <span class="page-header-title">签名照管理</span>
       </template>
     </el-page-header>
 
@@ -12,43 +10,44 @@
       <div class="upload-content">
         <!-- 当前签名照 -->
         <div class="current-section">
-          <h3><i class="el-icon-edit"></i> 当前签名照</h3>
+          <h3><i class="el-icon-edit"></i> 当前签名</h3>
           <div class="current-photo-container">
-            <div v-if="currentPhoto" class="photo-wrapper">
-              <img :src="currentPhoto" alt="当前签名照" class="current-photo" />
+            <div v-if="currentSignature" class="photo-wrapper">
+              <img :src="getFullImageUrl(currentSignature)" alt="当前签名" class="current-photo" />
               <div class="photo-info">
-                <p>当前使用签名照</p>
-                <el-button type="text" size="small" @click="downloadPhoto">
-                  <i class="el-icon-download"></i> 下载
-                </el-button>
+                <p>当前使用签名</p>
+                <div class="photo-actions">
+                  <el-button type="text" size="small" @click="downloadSignature">
+                    <i class="el-icon-download"></i> 下载
+                  </el-button>
+                </div>
               </div>
             </div>
             <div v-else class="empty-photo">
               <i class="el-icon-edit"></i>
-              <p>暂无签名照</p>
+              <p>暂无签名</p>
             </div>
           </div>
         </div>
 
         <!-- 上传区域 -->
         <div class="upload-section">
-          <h3><i class="el-icon-upload"></i> 上传新签名照</h3>
+          <h3><i class="el-icon-upload"></i> 上传新签名</h3>
 
           <el-upload
-            class="uploader"
-            drag
-            :action="uploadAction"
-            :before-upload="beforeUpload"
-            :on-success="handleSuccess"
-            :on-error="handleError"
-            :show-file-list="false"
-            accept="image/*"
+              class="uploader"
+              drag
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :show-file-list="false"
+              accept="image/*"
+              :before-upload="beforeUpload"
           >
             <div class="uploader-content">
               <i class="el-icon-upload"></i>
               <div class="uploader-text">
                 <p>将文件拖到此处，或<em>点击上传</em></p>
-                <p class="uploader-tip">只能上传jpg/png文件，且不超过2MB</p>
+                <p class="uploader-tip">支持格式：{{ allowedExtensions.join(', ') }}，且不超过3MB</p>
               </div>
             </div>
           </el-upload>
@@ -57,7 +56,12 @@
             <h4>预览</h4>
             <img :src="previewUrl" alt="预览" class="preview-image" />
             <div class="preview-actions">
-              <el-button type="primary" @click="confirmUpload" size="small">
+              <el-button
+                  type="primary"
+                  @click="confirmUpload"
+                  size="small"
+                  :loading="uploading"
+              >
                 <i class="el-icon-check"></i> 确认上传
               </el-button>
               <el-button @click="clearPreview" size="small">
@@ -70,9 +74,9 @@
           <div class="upload-guide">
             <h4><i class="el-icon-info"></i> 上传指南</h4>
             <ul>
-              <li>支持格式：JPG、PNG（建议使用透明背景PNG）</li>
-              <li>文件大小：不超过 2MB</li>
-              <li>建议尺寸：300x150 像素（适合签名照比例）</li>
+              <li>支持格式：JPG、PNG</li>
+              <li>文件大小：不超过 3MB</li>
+              <li>建议尺寸：300x150 像素（适合签名比例）</li>
               <li>内容要求：清晰的手写签名或电子签名</li>
               <li>背景建议：透明背景或白色背景</li>
             </ul>
@@ -84,105 +88,238 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import request from '@/api';
+import { userApi } from '@/api/user';
 
 export default defineComponent({
   name: 'SimplePhotoUpload',
   setup() {
     const router = useRouter();
 
-    const currentPhoto = ref('');
+    // 状态
+    const currentSignature = ref('');
     const previewUrl = ref('');
-    const uploadAction = ref('/api/profile/upload-photo');
+    const selectedFile = ref<File | null>(null);
+    const uploading = ref(false);
 
-    // 加载当前签名照
-    const loadCurrentPhoto = async () => {
+    // 获取当前用户ID
+    const currentUserId = computed(() => {
+      const userInfo = localStorage.getItem('userInfo');
+      if (!userInfo) return null;
+
       try {
-        const userInfo = localStorage.getItem('userInfo');
-        if (!userInfo) return;
-
         const info = JSON.parse(userInfo);
-        const response = await request.get('/api/profile/current-photo', {
-          params: {
-            user_id: info.id || info.user_id || '',
-            institute_id: info.institute_id || info.instId || 1
-          }
-        });
-
-        if (response.code === 200 && response.data.photo_url) {
-          currentPhoto.value = response.data.photo_url;
-        }
+        return info.id || info.userId || info.user_id || '';
       } catch (error) {
-        console.error('加载签名照失败:', error);
+        console.error('解析用户信息失败:', error);
+        return null;
+      }
+    });
+
+    // 允许的文件类型 - 与后端配置保持一致
+    const allowedExtensions = ['jpg', 'png'];
+
+    // 构建完整的图片URL
+    const getFullImageUrl = (relativePath: string) => {
+      if (!relativePath) return '';
+
+      console.log('构建图片URL，相对路径:', relativePath);
+
+      // 如果已经是完整URL，直接返回
+      if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+        return relativePath;
+      }
+
+      // 获取基础URL
+      const baseUrl = window.location.origin;
+      console.log('基础URL:', baseUrl);
+
+      // 处理相对路径
+      let cleanPath = relativePath;
+
+      // 确保路径以 / 开头
+      if (!cleanPath.startsWith('/')) {
+        cleanPath = '/' + cleanPath;
+      }
+
+      // 构建完整URL
+      const fullUrl = baseUrl + cleanPath;
+      console.log('完整图片URL:', fullUrl);
+
+      return fullUrl;
+    };
+
+    // 加载当前签名 - 使用统一的API调用
+    const loadCurrentSignature = async () => {
+      try {
+        const userId = currentUserId.value;
+        if (!userId) {
+          console.warn('无法获取用户ID');
+          ElMessage.warning('请先登录');
+          currentSignature.value = '';
+          return;
+        }
+
+        console.log('加载签名，用户ID:', userId);
+
+        // 使用统一的API调用
+        const result = await userApi.getCurrentSignature(userId);
+        console.log('API响应:', result);
+
+        if (result.code === 200) {
+          if (result.data) {
+            currentSignature.value = result.data;
+            console.log('获取到签名路径:', result.data);
+          } else {
+            currentSignature.value = '';
+            console.log('用户未上传签名');
+          }
+        } else {
+          ElMessage.error(result.message || '获取签名失败');
+          currentSignature.value = '';
+        }
+      } catch (error: any) {
+        console.error('加载签名失败:', error);
+        ElMessage.error('加载签名失败: ' + (error.message || error));
+        currentSignature.value = '';
       }
     };
 
-    // 上传前验证
+    // 文件选择处理
+    const handleFileChange = (file: any) => {
+      selectedFile.value = file.raw;
+
+      // 生成预览
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        previewUrl.value = e.target?.result as string;
+      };
+      reader.readAsDataURL(file.raw);
+    };
+
+    // 上传前验证 - 修正文件大小限制为3MB
     const beforeUpload = (file: File) => {
       const isImage = file.type.startsWith('image/');
-      const isLt2M = file.size / 1024 / 1024 < 2;
+      const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
+      const isValidExtension = allowedExtensions.includes(fileExtension);
+      const isLt3M = file.size / 1024 / 1024 < 3; // 修改为3MB
 
       if (!isImage) {
         ElMessage.error('只能上传图片文件!');
         return false;
       }
-      if (!isLt2M) {
-        ElMessage.error('图片大小不能超过 2MB!');
+      if (!isValidExtension) {
+        ElMessage.error(`文件类型不支持，仅支持：${allowedExtensions.join(', ')}`);
+        return false;
+      }
+      if (!isLt3M) {
+        ElMessage.error('图片大小不能超过 3MB!'); // 修改错误提示
         return false;
       }
 
-      // 显示预览
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        previewUrl.value = e.target?.result as string;
-      };
-      reader.readAsDataURL(file);
-
-      return true;
+      return false; // 返回false，手动上传
     };
 
-    // 上传成功
-    const handleSuccess = (response: any) => {
-      if (response.code === 200) {
-        ElMessage.success('签名照上传成功');
-        previewUrl.value = '';
-        loadCurrentPhoto();
-      } else {
-        ElMessage.error(response.message || '上传失败');
+    // 确认上传 - 使用统一的API调用
+    const confirmUpload = async () => {
+      if (!selectedFile.value) {
+        ElMessage.warning('请先选择文件');
+        return;
       }
-    };
 
-    // 上传失败
-    const handleError = () => {
-      ElMessage.error('上传失败');
-    };
+      const userId = currentUserId.value;
+      if (!userId) {
+        ElMessage.warning('无法获取用户ID，请重新登录');
+        return;
+      }
 
-    // 确认上传（手动触发）
-    const confirmUpload = () => {
-      // 这里可以添加额外的确认逻辑
-      ElMessage.success('签名照已上传成功');
-      previewUrl.value = '';
-      loadCurrentPhoto();
+      uploading.value = true;
+
+      try {
+        console.log('上传文件:', selectedFile.value.name);
+        console.log('用户ID:', userId);
+
+        // 使用统一的API调用
+        const result = await userApi.uploadSignature(selectedFile.value, userId);
+        console.log('上传响应结果:', result);
+
+        if (result.code === 200) {
+          ElMessage.success('签名上传成功');
+          previewUrl.value = '';
+          selectedFile.value = null;
+          await loadCurrentSignature(); // 重新加载签名
+        } else {
+          ElMessage.error(result.message || '上传失败');
+        }
+      } catch (error: any) {
+        console.error('上传失败:', error);
+        // 更友好的错误提示
+        let errorMessage = '上传失败';
+        if (error.response) {
+          errorMessage = error.response.data?.message || error.response.statusText;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        ElMessage.error(errorMessage);
+      } finally {
+        uploading.value = false;
+      }
     };
 
     // 清除预览
     const clearPreview = () => {
       previewUrl.value = '';
+      selectedFile.value = null;
     };
 
-    // 下载签名照
-    const downloadPhoto = () => {
-      if (!currentPhoto.value) return;
+    // 下载签名
+    const downloadSignature = () => {
+      if (!currentSignature.value) {
+        ElMessage.warning('没有可下载的签名');
+        return;
+      }
 
-      const link = document.createElement('a');
-      link.href = currentPhoto.value;
-      link.download = 'signature.jpg';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const fullUrl = getFullImageUrl(currentSignature.value);
+      console.log('下载URL:', fullUrl);
+
+      // 创建一个隐藏的iframe来测试图片访问
+      const testIframe = document.createElement('iframe');
+      testIframe.style.display = 'none';
+      testIframe.src = fullUrl;
+      testIframe.onload = () => {
+        console.log('图片可以访问，开始下载');
+
+        // 使用fetch下载图片
+        fetch(fullUrl)
+            .then(response => response.blob())
+            .then(blob => {
+              const url = window.URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `signature_${currentUserId.value || 'user'}_${Date.now()}.jpg`;
+              document.body.appendChild(link);
+              link.click();
+              document.body.removeChild(link);
+              window.URL.revokeObjectURL(url);
+              ElMessage.success('下载开始');
+            })
+            .catch(error => {
+              console.error('下载失败:', error);
+              ElMessage.error('下载失败: ' + error.message);
+            })
+            .finally(() => {
+              document.body.removeChild(testIframe);
+            });
+      };
+      testIframe.onerror = () => {
+        console.error('图片无法访问');
+        ElMessage.error('图片无法访问，请检查服务器配置');
+        document.body.removeChild(testIframe);
+      };
+
+      document.body.appendChild(testIframe);
     };
 
     // 返回
@@ -191,19 +328,20 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      loadCurrentPhoto();
+      loadCurrentSignature();
     });
 
     return {
-      currentPhoto,
+      currentSignature,
       previewUrl,
-      uploadAction,
+      uploading,
+      allowedExtensions,
+      getFullImageUrl,
+      handleFileChange,
       beforeUpload,
-      handleSuccess,
-      handleError,
       confirmUpload,
       clearPreview,
-      downloadPhoto,
+      downloadSignature,
       goBack
     };
   }

@@ -1,4 +1,4 @@
-
+import { uploadSignature } from './upload';
 import { get, post, put, patch, del } from './index'
 
 // 用户相关 API
@@ -77,5 +77,15 @@ export const userApi = {
   },
   getTeacherCount: ()=>{
     return get<number>('/teacher/count')
+  },
+
+  // 获取当前签名
+  getCurrentSignature: (userId: string) => {
+    return get(`/signature/current?userId=${userId}`);
+  },
+
+  // 上传签名
+  uploadSignature: (file: File, userId: string) => {
+    return uploadSignature(file, userId);
   }
 }

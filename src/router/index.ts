@@ -167,6 +167,19 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = localStorage.getItem('token')
   const userType = localStorage.getItem('userType')
 
+  //静态资源路径直接放行
+  const isStaticResource = to.path.startsWith('/uploads/') ||
+      to.path.startsWith('/signatures/') ||
+      to.path.startsWith('/static/') ||
+      to.path.startsWith('/assets/')||
+      to.path.startsWith('/api/uploads/')
+
+  if (isStaticResource) {
+    console.log('访问静态资源，直接放行:', to.path)
+    next()
+    return
+  }
+
   // 如果是访问登录页且已登录，根据用户类型跳转到对应首页
   if (isAuthenticated && to.name === 'login') {
     console.log('已登录用户访问登录页，跳转到对应首页，userType:', userType)

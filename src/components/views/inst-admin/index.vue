@@ -122,7 +122,7 @@ export default defineComponent({
           instituteName.value = info.institute_name || info.department || '计算机学院';
 
           // 加载统计数据
-          const response = await request.get('/api/inst-admin/stats', {
+          const response = await request.get('/inst-admin/stats', {
             params: { institute_id: info.institute_id || info.instId || 1 }
           });
 
