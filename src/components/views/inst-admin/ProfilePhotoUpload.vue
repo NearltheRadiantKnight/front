@@ -1,36 +1,38 @@
+[file name]: ProfilePhotoUpload.vue
+[file content begin]
 <template>
   <div class="simple-photo-upload">
     <el-page-header @back="goBack" title="返回">
       <template #content>
-        <span class="page-header-title">系主任照片上传</span>
+        <span class="page-header-title">系主任签名照上传</span>
       </template>
     </el-page-header>
 
     <el-card class="upload-card">
       <div class="upload-content">
-        <!-- 当前照片 -->
+        <!-- 当前签名照 -->
         <div class="current-section">
-          <h3><i class="el-icon-picture"></i> 当前照片</h3>
+          <h3><i class="el-icon-edit"></i> 当前签名照</h3>
           <div class="current-photo-container">
             <div v-if="currentPhoto" class="photo-wrapper">
-              <img :src="currentPhoto" alt="当前照片" class="current-photo" />
+              <img :src="currentPhoto" alt="当前签名照" class="current-photo" />
               <div class="photo-info">
-                <p>当前使用照片</p>
+                <p>当前使用签名照</p>
                 <el-button type="text" size="small" @click="downloadPhoto">
                   <i class="el-icon-download"></i> 下载
                 </el-button>
               </div>
             </div>
             <div v-else class="empty-photo">
-              <i class="el-icon-user"></i>
-              <p>暂无照片</p>
+              <i class="el-icon-edit"></i>
+              <p>暂无签名照</p>
             </div>
           </div>
         </div>
 
         <!-- 上传区域 -->
         <div class="upload-section">
-          <h3><i class="el-icon-upload"></i> 上传新照片</h3>
+          <h3><i class="el-icon-upload"></i> 上传新签名照</h3>
 
           <el-upload
             class="uploader"
@@ -68,10 +70,11 @@
           <div class="upload-guide">
             <h4><i class="el-icon-info"></i> 上传指南</h4>
             <ul>
-              <li>支持格式：JPG、PNG</li>
+              <li>支持格式：JPG、PNG（建议使用透明背景PNG）</li>
               <li>文件大小：不超过 2MB</li>
-              <li>建议尺寸：300x300 像素</li>
-              <li>照片要求：正面免冠，五官清晰</li>
+              <li>建议尺寸：300x150 像素（适合签名照比例）</li>
+              <li>内容要求：清晰的手写签名或电子签名</li>
+              <li>背景建议：透明背景或白色背景</li>
             </ul>
           </div>
         </div>
@@ -95,7 +98,7 @@ export default defineComponent({
     const previewUrl = ref('');
     const uploadAction = ref('/api/profile/upload-photo');
 
-    // 加载当前照片
+    // 加载当前签名照
     const loadCurrentPhoto = async () => {
       try {
         const userInfo = localStorage.getItem('userInfo');
@@ -113,7 +116,7 @@ export default defineComponent({
           currentPhoto.value = response.data.photo_url;
         }
       } catch (error) {
-        console.error('加载照片失败:', error);
+        console.error('加载签名照失败:', error);
       }
     };
 
@@ -144,7 +147,7 @@ export default defineComponent({
     // 上传成功
     const handleSuccess = (response: any) => {
       if (response.code === 200) {
-        ElMessage.success('照片上传成功');
+        ElMessage.success('签名照上传成功');
         previewUrl.value = '';
         loadCurrentPhoto();
       } else {
@@ -160,7 +163,7 @@ export default defineComponent({
     // 确认上传（手动触发）
     const confirmUpload = () => {
       // 这里可以添加额外的确认逻辑
-      ElMessage.success('照片已上传成功');
+      ElMessage.success('签名照已上传成功');
       previewUrl.value = '';
       loadCurrentPhoto();
     };
@@ -170,13 +173,13 @@ export default defineComponent({
       previewUrl.value = '';
     };
 
-    // 下载照片
+    // 下载签名照
     const downloadPhoto = () => {
       if (!currentPhoto.value) return;
 
       const link = document.createElement('a');
       link.href = currentPhoto.value;
-      link.download = 'profile-photo.jpg';
+      link.download = 'signature.jpg';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -255,12 +258,13 @@ export default defineComponent({
 }
 
 .current-photo {
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: 150px;
   border-radius: 8px;
-  object-fit: cover;
-  border: 3px solid #fff;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  object-fit: contain;
+  border: 1px dashed #dcdfe6;
+  background: white;
+  padding: 10px;
 }
 
 .photo-info {
@@ -273,8 +277,8 @@ export default defineComponent({
 }
 
 .empty-photo {
-  width: 200px;
-  height: 200px;
+  width: 300px;
+  height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -282,10 +286,11 @@ export default defineComponent({
   background: #e4e7ed;
   border-radius: 8px;
   margin: 0 auto;
+  border: 1px dashed #dcdfe6;
 }
 
 .empty-photo i {
-  font-size: 60px;
+  font-size: 48px;
   color: #909399;
   margin-bottom: 10px;
 }
@@ -341,12 +346,13 @@ export default defineComponent({
 }
 
 .preview-image {
-  width: 150px;
+  width: 300px;
   height: 150px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 4px;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px dashed #dcdfe6;
+  background: white;
+  padding: 10px;
   margin-bottom: 15px;
 }
 
@@ -390,9 +396,12 @@ export default defineComponent({
   }
 
   .current-photo,
-  .empty-photo {
-    width: 150px;
+  .empty-photo,
+  .preview-image {
+    width: 100%;
+    max-width: 300px;
     height: 150px;
   }
 }
 </style>
+[file content end]
