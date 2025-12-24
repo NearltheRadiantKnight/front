@@ -18,47 +18,48 @@
                         <el-button type="primary" @click="handleAdd">
                             <i class="el-icon-plus"></i> 添加教师
                         </el-button>
-                        <el-button type="success" @click="showImportDialog = true">
-                            <i class="el-icon-upload"></i> 导入
-                        </el-button>
                     </div>
                 </div>
             </template>
 
             <el-table :data="teacherList" style="width: 100%" v-loading="loading">
-                <el-table-column prop="teacherId" label="工号" width="100" />
+                <el-table-column prop="id" label="工号" width="100" />
                 <el-table-column prop="name" label="姓名" width="90" />
-                <el-table-column prop="title" label="职称" width="90" />
-                <el-table-column prop="department" label="系部" width="120" />
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column prop="email" label="邮箱" width="180" />
-                <el-table-column label="答辩组长" width="100">
+                <el-table-column label="角色" width="100">
                     <template #default="scope">
-                        <el-tag
-                            v-if="scope.row.isGroupLeader"
-                            type="success"
-                            size="small"
-                        >
-                            组长
-                        </el-tag>
+                        <el-tag v-if="scope.row.isAdmin" type="success" size="small">管理员</el-tag>
+                        <el-tag v-else type="info" size="small">教师</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="所在小组" width="150">
+                <el-table-column label="答辩组长" width="100">
                     <template #default="scope">
-                        <span v-if="scope.row.groupName">{{ scope.row.groupName }}</span>
-                        <span v-else style="color: #999;">无</span>
+                        <el-tag v-if="scope.row.isDefenseLeader" type="warning" size="small">组长</el-tag>
+                        <span v-else style="color: #999;">-</span>
+                    </template>
+                </el-table-column>
+                <el-table-column label="所属小组" width="150">
+                    <template #default="scope">
+                        <div v-if="scope.row.groupId">
+                            <div>小组ID: {{ scope.row.groupId }}</div>
+                            <div v-if="scope.row.groupName" style="font-size: 12px; color: #666;">
+                                {{ scope.row.groupName }}
+                            </div>
+                        </div>
+                        <span v-else style="color: #999;">未分配</span>
+                    </template>
+                </el-table-column>
+                <el-table-column prop="groupYear" label="答辩年份" width="100">
+                    <template #default="scope">
+                        <span v-if="scope.row.groupYear">{{ scope.row.groupYear }}年</span>
+                        <span v-else style="color: #999;">-</span>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" width="200" fixed="right">
                     <template #default="scope">
-                        <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-                        <el-button
-                            type="text"
-                            size="small"
-                            @click="handleSetLeader(scope.row)"
-                            :disabled="scope.row.isGroupLeader"
-                        >
-                            设为组长
+                        <el-button type="text" size="small" @click="handleAssignGroup(scope.row)">
+                            分配小组
                         </el-button>
                         <el-button
                             type="text"
@@ -86,66 +87,51 @@
             </div>
         </el-card>
 
-        <!-- 教师编辑对话框 -->
+        <!-- 添加教师对话框 -->
         <el-dialog
-            v-model="editDialogVisible"
-            :title="isEditMode ? '编辑教师' : '添加教师'"
+            v-model="addDialogVisible"
+            title="添加教师"
             width="500px"
         >
-            <el-form ref="teacherFormRef" :model="teacherForm" :rules="teacherRules" label-width="100px">
-                <el-form-item label="工号" prop="teacher_id" required>
-                    <el-input
-                        v-model="teacherForm.teacher_id"
-                        placeholder="请输入工号"
-                        :disabled="isEditMode"
-                    />
+            <el-form ref="addFormRef" :model="addForm" :rules="teacherRules" label-width="100px">
+                <el-form-item label="工号" prop="id" required>
+                    <el-input v-model="addForm.id" placeholder="请输入工号" />
                 </el-form-item>
                 <el-form-item label="姓名" prop="name" required>
-                    <el-input v-model="teacherForm.name" placeholder="请输入姓名" />
-                </el-form-item>
-                <el-form-item label="职称" prop="title">
-                    <el-select v-model="teacherForm.title" placeholder="请选择职称" style="width: 100%">
-                        <el-option label="教授" value="教授" />
-                        <el-option label="副教授" value="副教授" />
-                        <el-option label="讲师" value="讲师" />
-                        <el-option label="助教" value="助教" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="系部" prop="department">
-                    <el-input v-model="teacherForm.department" placeholder="请输入系部" />
+                    <el-input v-model="addForm.name" placeholder="请输入姓名" />
                 </el-form-item>
                 <el-form-item label="联系电话" prop="phone">
-                    <el-input v-model="teacherForm.phone" placeholder="请输入联系电话" />
+                    <el-input v-model="addForm.phone" placeholder="请输入联系电话" />
                 </el-form-item>
                 <el-form-item label="邮箱" prop="email">
-                    <el-input v-model="teacherForm.email" placeholder="请输入邮箱" />
-                </el-form-item>
-                <el-form-item label="是否管理员" prop="is_admin">
-                    <el-switch v-model="teacherForm.is_admin" />
+                    <el-input v-model="addForm.email" placeholder="请输入邮箱" />
                 </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="editDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSubmit">保存</el-button>
+                <el-button @click="addDialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="handleAddSubmit">保存</el-button>
             </template>
         </el-dialog>
 
-        <!-- 设为组长对话框 -->
+        <!-- 分配小组对话框 -->
         <el-dialog
-            v-model="leaderDialogVisible"
-            title="设为答辩组长"
+            v-model="assignDialogVisible"
+            title="分配答辩小组"
             width="500px"
         >
-            <el-form label-width="100px">
+            <el-form ref="assignFormRef" :model="assignForm" label-width="100px">
                 <el-form-item label="教师信息">
-                    <div>{{ selectedTeacher.name }}（{{ selectedTeacher.teacherId }}）</div>
+                    <div style="padding: 8px; background: #f5f7fa; border-radius: 4px;">
+                        {{ selectedTeacher.name }}（{{ selectedTeacher.id }}）
+                    </div>
                 </el-form-item>
-                <el-form-item label="选择年份">
+                <el-form-item label="选择年份" required>
                     <el-select
-                        v-model="selectedYear"
+                        v-model="assignForm.year"
                         placeholder="请选择年份"
                         @change="handleYearChange"
                         style="width: 100%"
+                        clearable
                     >
                         <el-option
                             v-for="year in yearOptions"
@@ -155,12 +141,13 @@
                         />
                     </el-select>
                 </el-form-item>
-                <el-form-item label="选择小组">
+                <el-form-item label="选择小组" required>
                     <el-select
-                        v-model="selectedGroupId"
+                        v-model="assignForm.groupId"
                         placeholder="请选择小组"
-                        :disabled="!selectedYear"
+                        :disabled="!assignForm.year"
                         style="width: 100%"
+                        clearable
                     >
                         <el-option
                             v-for="group in groupOptions"
@@ -170,47 +157,29 @@
                         />
                     </el-select>
                 </el-form-item>
+                <el-form-item label="设为组长">
+                    <el-switch
+                        v-model="assignForm.isLeader"
+                        :disabled="!assignForm.groupId"
+                    />
+                    <div v-if="assignForm.isLeader" style="color: #e6a23c; font-size: 12px; margin-top: 5px;">
+                        注意：设为组长后，该教师将成为该小组的负责人
+                    </div>
+                </el-form-item>
+                <el-form-item label="操作说明" v-if="selectedTeacher.groupId">
+                    <div style="color: #f56c6c; font-size: 12px;">
+                        注意：该教师已有分配的小组（{{ selectedTeacher.groupName }}），重新分配将覆盖原有设置
+                    </div>
+                </el-form-item>
             </el-form>
             <template #footer>
-                <el-button @click="leaderDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleSetLeaderSubmit">设为组长</el-button>
-            </template>
-        </el-dialog>
-
-        <!-- 导入对话框 -->
-        <el-dialog
-            v-model="showImportDialog"
-            title="导入教师数据"
-            width="500px"
-        >
-            <div class="import-instructions">
-                <h4>导入说明：</h4>
-                <ol>
-                    <li>下载模板文件，按要求填写数据</li>
-                    <li>支持Excel格式（.xlsx, .xls）</li>
-                    <li>每次最多导入200条记录</li>
-                    <li>工号不能重复</li>
-                </ol>
-            </div>
-
-            <el-upload
-                class="upload-demo"
-                drag
-                action="/api/teachers/import"
-                :before-upload="beforeUpload"
-                :on-success="handleImportSuccess"
-                :on-error="handleImportError"
-                :show-file-list="false"
-                accept=".xlsx,.xls"
-            >
-                <i class="el-icon-upload"></i>
-                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-                <div class="el-upload__tip" slot="tip">只能上传excel文件，且不超过10MB</div>
-            </el-upload>
-
-            <template #footer>
-                <el-button @click="showImportDialog = false">关闭</el-button>
-                <el-button type="primary" @click="downloadTemplate">下载模板</el-button>
+                <el-button @click="assignDialogVisible = false">取消</el-button>
+                <el-button type="danger" @click="handleRemoveGroup" :disabled="!selectedTeacher.groupId">
+                    移除小组
+                </el-button>
+                <el-button type="primary" @click="handleAssignSubmit" :disabled="!assignForm.groupId">
+                    确认分配
+                </el-button>
             </template>
         </el-dialog>
     </div>
@@ -224,36 +193,30 @@ import request from '@/api';
 export default defineComponent({
     name: 'TeacherManagement',
     setup() {
-        const teacherFormRef = ref();
+        const addFormRef = ref();
+        const assignFormRef = ref();
         const loading = ref(false);
-        const editDialogVisible = ref(false);
-        const leaderDialogVisible = ref(false);
-        const showImportDialog = ref(false);
-        const isEditMode = ref(false);
+        const addDialogVisible = ref(false);
+        const assignDialogVisible = ref(false);
 
         const searchKeyword = ref('');
         const teacherList = ref([] as any[]);
         const currentPage = ref(1);
         const pageSize = ref(10);
         const total = ref(0);
-
         const instituteId = ref(1);
 
-        // 表单相关
-        const teacherForm = ref({
+        // 添加表单
+        const addForm = ref({
             id: '',
-            teacher_id: '',
             name: '',
-            title: '',
-            department: '',
             phone: '',
             email: '',
-            is_admin: false,
-            institute_id: instituteId.value
+            instituteId: instituteId.value
         });
 
         const teacherRules = {
-            teacher_id: [
+            id: [
                 { required: true, message: '请输入工号', trigger: 'blur' },
                 { pattern: /^\d{6,10}$/, message: '工号为6-10位数字', trigger: 'blur' }
             ],
@@ -265,14 +228,17 @@ export default defineComponent({
                 { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
             ],
             phone: [
-                { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+                { pattern: /^1[3-9]\d{9}$|^$/, message: '请输入正确的手机号码或留空', trigger: 'blur' }
             ]
         };
 
-        // 设为组长相关
+        // 分配小组表单
         const selectedTeacher = ref({} as any);
-        const selectedYear = ref(null as number | null);
-        const selectedGroupId = ref(null as number | null);
+        const assignForm = ref({
+            year: null as number | null,
+            groupId: null as number | null,
+            isLeader: false
+        });
         const yearOptions = ref([] as any[]);
         const groupOptions = ref([] as any[]);
 
@@ -290,19 +256,32 @@ export default defineComponent({
                 });
 
                 if (response.code === 200) {
-                    // 映射字段：后端返回下划线，前端用驼峰
-                    teacherList.value = (response.data.list || []).map((teacher: any) => ({
-                        id: teacher.id,
-                        teacherId: teacher.teacher_id || teacher.teacherId,
-                        name: teacher.name,
-                        title: teacher.title,
-                        department: teacher.department,
-                        phone: teacher.phone,
-                        email: teacher.email,
-                        isGroupLeader: teacher.is_group_leader || teacher.isGroupLeader,
-                        groupName: teacher.group_name || teacher.groupName,
-                        isAdmin: teacher.is_admin || teacher.isAdmin
-                    }));
+                    // 处理字段映射
+                    teacherList.value = (response.data.list || []).map(teacher => {
+                        // 生成显示名称
+                        let displayName = '未知教师';
+                        if (teacher.realName) {
+                            displayName = teacher.realName;
+                        } else if (teacher.id) {
+                            // 使用工号生成默认名称
+                            displayName = `教师${teacher.id.slice(-4)}`;
+                        }
+
+                        return {
+                            id: teacher.id,
+                            name: displayName,
+                            realName: teacher.realName, // 保留原始字段
+                            phone: teacher.phone || '-',
+                            email: teacher.email || '-',
+                            instituteId: teacher.instituteId,
+                            instituteName: teacher.instituteName,
+                            isDefenseLeader: teacher.isDefenseLeader,
+                            groupId: teacher.groupId,
+                            groupName: teacher.groupName,
+                            groupYear: teacher.groupYear,
+                            isAdmin: teacher.isAdmin || teacher.role === 1
+                        };
+                    });
                     total.value = response.data.total || 0;
                 }
             } catch (error) {
@@ -321,69 +300,55 @@ export default defineComponent({
 
         // 添加教师
         const handleAdd = () => {
-            isEditMode.value = false;
-            teacherForm.value = {
+            addForm.value = {
                 id: '',
-                teacher_id: '',
                 name: '',
-                title: '',
-                department: '',
                 phone: '',
                 email: '',
-                is_admin: false,
-                institute_id: instituteId.value
+                instituteId: instituteId.value
             };
-            editDialogVisible.value = true;
+            addDialogVisible.value = true;
         };
 
-        // 编辑教师
-        const handleEdit = (row: any) => {
-            isEditMode.value = true;
-            teacherForm.value = {
-                id: row.id,
-                teacher_id: row.teacherId,
-                name: row.name,
-                title: row.title,
-                department: row.department,
-                phone: row.phone,
-                email: row.email,
-                is_admin: row.isAdmin,
-                institute_id: instituteId.value
-            };
-            editDialogVisible.value = true;
-        };
+        const handleAddSubmit = async () => {
+            if (!addFormRef.value) return;
 
-        // 保存教师
-        const handleSubmit = async () => {
-            if (!teacherFormRef.value) return;
-
-            const valid = await teacherFormRef.value.validate();
+            const valid = await addFormRef.value.validate();
             if (!valid) return;
 
             try {
-                const url = isEditMode.value ? '/api/teachers/update' : '/api/teachers/create';
-                const response = await request.post(url, teacherForm.value);
+                const response = await request.post('/api/teachers/create', {
+                    id: addForm.value.id,
+                    realName: addForm.value.name,
+                    phone: addForm.value.phone,
+                    email: addForm.value.email,
+                    instituteId: addForm.value.instituteId
+                    // 不传 isAdmin，后端默认为 false
+                });
 
                 if (response.code === 200) {
-                    ElMessage.success(isEditMode.value ? '更新成功' : '创建成功');
-                    editDialogVisible.value = false;
+                    ElMessage.success('创建成功');
+                    addDialogVisible.value = false;
                     loadTeachers();
                 } else {
-                    ElMessage.error(response.message || '操作失败');
+                    ElMessage.error(response.message || '创建失败');
                 }
-            } catch (error) {
-                console.error('保存教师失败:', error);
-                ElMessage.error('操作失败');
+            } catch (error: any) {
+                console.error('创建教师失败:', error);
+                ElMessage.error(error.response?.data?.message || '创建失败');
             }
         };
 
-        // 设为组长
-        const handleSetLeader = (row: any) => {
+        // 分配小组
+        const handleAssignGroup = (row: any) => {
             selectedTeacher.value = row;
-            selectedYear.value = null;
-            selectedGroupId.value = null;
+            assignForm.value = {
+                year: row.groupYear || null,
+                groupId: row.groupId || null,
+                isLeader: row.isDefenseLeader || false
+            };
             loadYearOptions();
-            leaderDialogVisible.value = true;
+            assignDialogVisible.value = true;
         };
 
         const loadYearOptions = async () => {
@@ -400,47 +365,88 @@ export default defineComponent({
         };
 
         const handleYearChange = async (year: number) => {
+            assignForm.value.groupId = null;
+            assignForm.value.isLeader = false;
+
+            if (!year) {
+                groupOptions.value = [];
+                return;
+            }
+
             try {
                 const response = await request.get('/api/defense-year/groups', {
                     params: { year, institute_id: instituteId.value }
                 });
                 if (response.code === 200) {
-                    groupOptions.value = response.data.filter((group: any) => !group.admin_id && !group.adminId);
+                    groupOptions.value = response.data;
                 }
             } catch (error) {
                 console.error('加载小组失败:', error);
             }
         };
 
-        const handleSetLeaderSubmit = async () => {
-            if (!selectedGroupId.value) {
+        const handleAssignSubmit = async () => {
+            if (!assignForm.value.groupId) {
                 ElMessage.warning('请选择小组');
                 return;
             }
 
             try {
-                const response = await request.post('/api/groups/set-leader', {
-                    group_id: selectedGroupId.value,
-                    teacher_id: selectedTeacher.value.id
-                });
+                const params: any = {
+                    teacher_id: selectedTeacher.value.id,
+                    group_id: assignForm.value.groupId
+                };
 
-                if (response.code === 200) {
-                    ElMessage.success('设置组长成功');
-                    leaderDialogVisible.value = false;
-                    loadTeachers();
+                if (assignForm.value.isLeader) {
+                    // 如果是设为组长，调用组长设置接口
+                    const response = await request.post('/api/teachers/set-leader', null, { params });
+                    if (response.code === 200) {
+                        ElMessage.success('分配小组成功（已设为组长）');
+                        assignDialogVisible.value = false;
+                        loadTeachers();
+                    } else {
+                        ElMessage.error(response.message || '分配失败');
+                    }
                 } else {
-                    ElMessage.error(response.message || '设置失败');
+                    // 如果不是组长，调用分配教师到小组的接口（需要后端提供）
+                    const response = await request.post('/api/teachers/assign-group', null, { params });
+                    if (response.code === 200) {
+                        ElMessage.success('分配小组成功');
+                        assignDialogVisible.value = false;
+                        loadTeachers();
+                    } else {
+                        ElMessage.error(response.message || '分配失败');
+                    }
                 }
             } catch (error) {
-                console.error('设置组长失败:', error);
-                ElMessage.error('设置失败');
+                console.error('分配小组失败:', error);
+                ElMessage.error('分配失败');
+            }
+        };
+
+        // 移除小组
+        const handleRemoveGroup = async () => {
+            try {
+                const response = await request.post('/api/teachers/remove-group', null, {
+                    params: { teacher_id: selectedTeacher.value.id }
+                });
+                if (response.code === 200) {
+                    ElMessage.success('已从小组中移除');
+                    assignDialogVisible.value = false;
+                    loadTeachers();
+                } else {
+                    ElMessage.error(response.message || '移除失败');
+                }
+            } catch (error) {
+                console.error('移除小组失败:', error);
+                ElMessage.error('移除失败');
             }
         };
 
         // 删除教师
         const handleDelete = (row: any) => {
             ElMessageBox.confirm(
-                `确定要删除教师 "${row.name}"（${row.teacherId}）吗？`,
+                `确定要删除教师 "${row.name}"（${row.id}）吗？`,
                 '确认删除',
                 {
                     confirmButtonText: '确定',
@@ -459,41 +465,6 @@ export default defineComponent({
                     ElMessage.error('删除失败');
                 }
             }).catch(() => {});
-        };
-
-        // 导入相关
-        const beforeUpload = (file: File) => {
-            const isExcel = file.type === 'application/vnd.ms-excel' ||
-                          file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-            const isLt10M = file.size / 1024 / 1024 < 10;
-
-            if (!isExcel) {
-                ElMessage.error('只能上传Excel文件!');
-                return false;
-            }
-            if (!isLt10M) {
-                ElMessage.error('文件大小不能超过10MB!');
-                return false;
-            }
-            return true;
-        };
-
-        const handleImportSuccess = (response: any) => {
-            if (response.code === 200) {
-                ElMessage.success('导入成功');
-                showImportDialog.value = false;
-                loadTeachers();
-            } else {
-                ElMessage.error(response.message || '导入失败');
-            }
-        };
-
-        const handleImportError = () => {
-            ElMessage.error('导入失败');
-        };
-
-        const downloadTemplate = () => {
-            window.open('/api/teachers/template', '_blank');
         };
 
         // 分页
@@ -523,38 +494,32 @@ export default defineComponent({
         };
 
         return {
-            teacherFormRef,
+            addFormRef,
+            assignFormRef,
             loading,
-            editDialogVisible,
-            leaderDialogVisible,
-            showImportDialog,
-            isEditMode,
+            addDialogVisible,
+            assignDialogVisible,
             searchKeyword,
             teacherList,
             currentPage,
             pageSize,
             total,
-            teacherForm,
+            addForm,
             teacherRules,
             selectedTeacher,
-            selectedYear,
-            selectedGroupId,
+            assignForm,
             yearOptions,
             groupOptions,
 
             loadTeachers,
             handleSearch,
             handleAdd,
-            handleEdit,
-            handleSubmit,
-            handleSetLeader,
+            handleAddSubmit,
+            handleAssignGroup,
             handleYearChange,
-            handleSetLeaderSubmit,
+            handleAssignSubmit,
+            handleRemoveGroup,
             handleDelete,
-            beforeUpload,
-            handleImportSuccess,
-            handleImportError,
-            downloadTemplate,
             handleSizeChange,
             handlePageChange,
             init
@@ -592,36 +557,6 @@ export default defineComponent({
 .pagination {
     margin-top: 20px;
     text-align: center;
-}
-
-.import-instructions {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-.import-instructions h4 {
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.import-instructions ol {
-    margin-left: 20px;
-    color: #666;
-}
-
-.import-instructions li {
-    margin-bottom: 5px;
-}
-
-.upload-demo {
-    text-align: center;
-}
-
-.upload-demo .el-upload-dragger {
-    width: 100%;
-    height: 180px;
 }
 
 .el-button--text {
