@@ -1,53 +1,54 @@
+[file name]: ProfilePhotoUpload.vue
+[file content begin]
 <template>
-  <div class="signature-upload">
+  <div class="simple-photo-upload">
     <el-page-header @back="goBack" title="返回">
       <template #content>
-        <span class="page-header-title">签名上传</span>
+        <span class="page-header-title">系主任签名照上传</span>
       </template>
     </el-page-header>
 
     <el-card class="upload-card">
       <div class="upload-content">
-        <!-- 当前签名 -->
+        <!-- 当前签名照 -->
         <div class="current-section">
-          <h3><i class="el-icon-picture"></i> 当前签名</h3>
-          <div class="current-signature-container">
-            <div v-if="currentSignature" class="signature-wrapper">
-              <img :src="currentSignature" alt="当前签名" class="current-signature" />
-              <div class="signature-info">
-                <p>当前使用签名</p>
-                <el-button type="text" size="small" @click="downloadSignature">
+          <h3><i class="el-icon-edit"></i> 当前签名照</h3>
+          <div class="current-photo-container">
+            <div v-if="currentPhoto" class="photo-wrapper">
+              <img :src="currentPhoto" alt="当前签名照" class="current-photo" />
+              <div class="photo-info">
+                <p>当前使用签名照</p>
+                <el-button type="text" size="small" @click="downloadPhoto">
                   <i class="el-icon-download"></i> 下载
                 </el-button>
               </div>
             </div>
-            <div v-else class="empty-signature">
+            <div v-else class="empty-photo">
               <i class="el-icon-edit"></i>
-              <p>暂无签名</p>
+              <p>暂无签名照</p>
             </div>
           </div>
         </div>
 
         <!-- 上传区域 -->
         <div class="upload-section">
-          <h3><i class="el-icon-upload"></i> 上传新签名</h3>
+          <h3><i class="el-icon-upload"></i> 上传新签名照</h3>
 
           <el-upload
-              class="uploader"
-              drag
-              :action="uploadAction"
-              :before-upload="beforeUpload"
-              :on-success="handleSuccess"
-              :on-error="handleError"
-              :show-file-list="false"
-              accept="image/*"
+            class="uploader"
+            drag
+            :action="uploadAction"
+            :before-upload="beforeUpload"
+            :on-success="handleSuccess"
+            :on-error="handleError"
+            :show-file-list="false"
+            accept="image/*"
           >
             <div class="uploader-content">
               <i class="el-icon-upload"></i>
               <div class="uploader-text">
                 <p>将文件拖到此处，或<em>点击上传</em></p>
                 <p class="uploader-tip">只能上传jpg/png文件，且不超过2MB</p>
-                <p class="uploader-tip">建议使用透明背景的PNG格式</p>
               </div>
             </div>
           </el-upload>
@@ -69,11 +70,11 @@
           <div class="upload-guide">
             <h4><i class="el-icon-info"></i> 上传指南</h4>
             <ul>
-              <li>支持格式：PNG（推荐）、JPG</li>
+              <li>支持格式：JPG、PNG（建议使用透明背景PNG）</li>
               <li>文件大小：不超过 2MB</li>
-              <li>建议尺寸：300x150 像素</li>
-              <li>背景要求：建议使用透明背景PNG</li>
-              <li>签名样式：手写签名扫描或电子签名</li>
+              <li>建议尺寸：300x150 像素（适合签名照比例）</li>
+              <li>内容要求：清晰的手写签名或电子签名</li>
+              <li>背景建议：透明背景或白色背景</li>
             </ul>
           </div>
         </div>
@@ -86,33 +87,36 @@
 import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import signatureApi from '@/api/signature';
+import request from '@/api';
 
 export default defineComponent({
-  name: 'SignatureUpload',
+  name: 'SimplePhotoUpload',
   setup() {
     const router = useRouter();
 
-    const currentSignature = ref('');
+    const currentPhoto = ref('');
     const previewUrl = ref('');
-    const uploadAction = ref('/api/signature/upload');
+    const uploadAction = ref('/api/profile/upload-photo');
 
-    // 加载当前签名
-    const loadCurrentSignature = async () => {
+    // 加载当前签名照
+    const loadCurrentPhoto = async () => {
       try {
         const userInfo = localStorage.getItem('userInfo');
         if (!userInfo) return;
 
         const info = JSON.parse(userInfo);
-        const response = await signatureApi.getCurrentSignature({
-          user_id: info.id || info.user_id || ''
+        const response = await request.get('/api/profile/current-photo', {
+          params: {
+            user_id: info.id || info.user_id || '',
+            institute_id: info.institute_id || info.instId || 1
+          }
         });
 
-        if (response.code === 200 && response.data.signature_url) {
-          currentSignature.value = response.data.signature_url;
+        if (response.code === 200 && response.data.photo_url) {
+          currentPhoto.value = response.data.photo_url;
         }
       } catch (error) {
-        console.error('加载签名失败:', error);
+        console.error('加载签名照失败:', error);
       }
     };
 
@@ -143,9 +147,9 @@ export default defineComponent({
     // 上传成功
     const handleSuccess = (response: any) => {
       if (response.code === 200) {
-        ElMessage.success('签名上传成功');
+        ElMessage.success('签名照上传成功');
         previewUrl.value = '';
-        loadCurrentSignature();
+        loadCurrentPhoto();
       } else {
         ElMessage.error(response.message || '上传失败');
       }
@@ -156,11 +160,12 @@ export default defineComponent({
       ElMessage.error('上传失败');
     };
 
-    // 确认上传
+    // 确认上传（手动触发）
     const confirmUpload = () => {
-      ElMessage.success('签名已上传成功');
+      // 这里可以添加额外的确认逻辑
+      ElMessage.success('签名照已上传成功');
       previewUrl.value = '';
-      loadCurrentSignature();
+      loadCurrentPhoto();
     };
 
     // 清除预览
@@ -168,13 +173,13 @@ export default defineComponent({
       previewUrl.value = '';
     };
 
-    // 下载签名
-    const downloadSignature = () => {
-      if (!currentSignature.value) return;
+    // 下载签名照
+    const downloadPhoto = () => {
+      if (!currentPhoto.value) return;
 
       const link = document.createElement('a');
-      link.href = currentSignature.value;
-      link.download = 'signature.png';
+      link.href = currentPhoto.value;
+      link.download = 'signature.jpg';
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -186,11 +191,11 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      loadCurrentSignature();
+      loadCurrentPhoto();
     });
 
     return {
-      currentSignature,
+      currentPhoto,
       previewUrl,
       uploadAction,
       beforeUpload,
@@ -198,7 +203,7 @@ export default defineComponent({
       handleError,
       confirmUpload,
       clearPreview,
-      downloadSignature,
+      downloadPhoto,
       goBack
     };
   }
@@ -206,8 +211,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 样式可以参考ProfilePhotoUpload.vue，只需修改类名和颜色主题 */
-.signature-upload {
+.simple-photo-upload {
   padding: 20px;
 }
 
@@ -241,7 +245,7 @@ export default defineComponent({
   gap: 8px;
 }
 
-.current-signature-container {
+.current-photo-container {
   border: 1px solid #dcdfe6;
   border-radius: 8px;
   padding: 20px;
@@ -249,30 +253,30 @@ export default defineComponent({
   text-align: center;
 }
 
-.signature-wrapper {
+.photo-wrapper {
   display: inline-block;
 }
 
-.current-signature {
+.current-photo {
   width: 300px;
   height: 150px;
-  border-radius: 4px;
+  border-radius: 8px;
   object-fit: contain;
-  border: 2px solid #e0e0e0;
+  border: 1px dashed #dcdfe6;
   background: white;
   padding: 10px;
 }
 
-.signature-info {
+.photo-info {
   margin-top: 15px;
 }
 
-.signature-info p {
+.photo-info p {
   margin-bottom: 8px;
   color: #666;
 }
 
-.empty-signature {
+.empty-photo {
   width: 300px;
   height: 150px;
   display: flex;
@@ -280,21 +284,22 @@ export default defineComponent({
   align-items: center;
   justify-content: center;
   background: #e4e7ed;
-  border-radius: 4px;
+  border-radius: 8px;
   margin: 0 auto;
+  border: 1px dashed #dcdfe6;
 }
 
-.empty-signature i {
-  font-size: 40px;
+.empty-photo i {
+  font-size: 48px;
   color: #909399;
   margin-bottom: 10px;
 }
 
-.empty-signature p {
+.empty-photo p {
   color: #909399;
 }
 
-/* 上传区域样式保持不变，可复用照片上传的样式 */
+/* 上传区域 */
 .uploader {
   margin-bottom: 20px;
 }
@@ -345,10 +350,9 @@ export default defineComponent({
   height: 150px;
   object-fit: contain;
   border-radius: 4px;
-  border: 2px solid #fff;
+  border: 1px dashed #dcdfe6;
   background: white;
   padding: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 15px;
 }
 
@@ -391,10 +395,13 @@ export default defineComponent({
     gap: 30px;
   }
 
-  .current-signature,
-  .empty-signature {
-    width: 250px;
-    height: 125px;
+  .current-photo,
+  .empty-photo,
+  .preview-image {
+    width: 100%;
+    max-width: 300px;
+    height: 150px;
   }
 }
 </style>
+[file content end]

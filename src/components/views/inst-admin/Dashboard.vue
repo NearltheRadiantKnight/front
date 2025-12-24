@@ -1,3 +1,5 @@
+[file name]: Dashboard.vue
+[file content begin]
 <template>
   <div class="inst-admin-dashboard">
     <!-- 导航栏保持不变 -->
@@ -9,14 +11,14 @@
         <el-tag type="success">院系管理员</el-tag>
         <span class="welcome">欢迎，{{ adminName }}</span>
 
-        <!-- 添加上传照片按钮 -->
+        <!-- 添加上传签名照按钮 -->
         <el-button
           type="text"
           @click="goToPhotoUpload"
           class="upload-btn"
-          title="上传照片"
+          title="上传签名照"
         >
-          <i class="el-icon-camera"></i> 上传照片
+          <i class="el-icon-edit"></i> 上传签名照
         </el-button>
 
         <el-button type="text" @click="logout">退出登录</el-button>
@@ -28,16 +30,9 @@
       <!-- 侧边栏 -->
       <el-aside width="280px" class="sidebar">
         <div class="user-info">
-          <div class="avatar" @click="goToPhotoUpload">
-            <!-- 显示照片或默认图标 -->
-            <img
-              v-if="userPhoto"
-              :src="userPhoto"
-              alt="系主任照片"
-              class="profile-photo"
-              title="点击上传/更换照片"
-            />
-            <i v-else class="el-icon-school"></i>
+          <div class="avatar">
+            <!-- 使用默认头像图标，不显示签名照 -->
+            <i class="el-icon-user-solid"></i>
           </div>
           <div class="info">
             <p class="name">{{ adminName }}</p>
@@ -49,7 +44,7 @@
               @click="goToPhotoUpload"
               class="photo-upload-link"
             >
-              <i class="el-icon-camera"></i> 上传/更换照片
+              <i class="el-icon-edit"></i> 管理签名照
             </el-button>
           </div>
         </div>
@@ -88,10 +83,10 @@
             <span>答辩管理</span>
           </el-menu-item>
 
-          <!-- 新增：照片管理 -->
+          <!-- 新增：签名照管理 -->
           <el-menu-item index="/inst-admin/photo-upload">
-            <i class="el-icon-camera"></i>
-            <span>照片管理</span>
+            <i class="el-icon-edit"></i>
+            <span>签名照管理</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
@@ -107,7 +102,6 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox } from 'element-plus';
-import request from '@/api';
 
 export default defineComponent({
   name: 'InstAdminDashboard',
@@ -117,7 +111,6 @@ export default defineComponent({
     const adminName = ref('院系管理员');
     const instituteName = ref('计算机学院');
     const loginTime = ref('');
-    const userPhoto = ref('');
 
     // 计算当前激活的菜单项
     const activeMenu = computed(() => {
@@ -130,31 +123,6 @@ export default defineComponent({
 
       return path;
     });
-
-    // 加载用户照片
-    const loadUserPhoto = async () => {
-      try {
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          const info = JSON.parse(userInfo);
-          const userId = info.id || info.user_id || '';
-          const instituteId = info.institute_id || info.instId || 1;
-
-          const response = await request.get('/api/profile/current-photo', {
-            params: {
-              user_id: userId,
-              institute_id: instituteId
-            }
-          });
-
-          if (response.code === 200 && response.data.photo_url) {
-            userPhoto.value = response.data.photo_url;
-          }
-        }
-      } catch (error) {
-        console.error('加载用户照片失败:', error);
-      }
-    };
 
     onMounted(() => {
       console.log('院系管理员Dashboard已加载');
@@ -172,12 +140,9 @@ export default defineComponent({
           console.error('解析用户信息失败:', error);
         }
       }
-
-      // 加载用户照片
-      loadUserPhoto();
     });
 
-    // 跳转到照片上传页面
+    // 跳转到签名照上传页面
     const goToPhotoUpload = () => {
       router.push('/inst-admin/photo-upload');
     };
@@ -197,7 +162,6 @@ export default defineComponent({
       adminName,
       instituteName,
       loginTime,
-      userPhoto,
       activeMenu,
       goToPhotoUpload,
       logout
@@ -259,12 +223,13 @@ export default defineComponent({
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 15px;
   font-size: 28px;
+  color: white;
 }
 
 .info .name {
@@ -277,7 +242,7 @@ export default defineComponent({
   font-size: 12px;
   color: #fff;
   margin: 3px 0;
-  background: #f5576c;
+  background: #667eea;
   padding: 2px 10px;
   border-radius: 12px;
   display: inline-block;
@@ -313,7 +278,7 @@ export default defineComponent({
 
 .sidebar-menu .el-menu-item.is-active {
   background-color: #1f2d3d !important;
-  border-left: 3px solid #f5576c;
+  border-left: 3px solid #667eea;
 }
 
 .content {
@@ -328,6 +293,7 @@ export default defineComponent({
   font-size: 16px;
   vertical-align: middle;
 }
+
 .header-right .upload-btn {
   color: #fff;
   font-size: 14px;
@@ -340,35 +306,6 @@ export default defineComponent({
 
 .header-right .upload-btn i {
   margin-right: 5px;
-}
-
-/* 头像区域样式 */
-.user-info .avatar {
-  cursor: pointer;
-  position: relative;
-}
-
-.user-info .avatar:hover::after {
-  content: '点击上传/更换照片';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  border-radius: 50%;
-}
-
-.profile-photo {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
 }
 
 .photo-upload-link {
@@ -388,3 +325,4 @@ export default defineComponent({
   margin-right: 3px;
 }
 </style>
+[file content end]
