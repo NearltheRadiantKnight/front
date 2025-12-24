@@ -7,7 +7,7 @@
 
     <el-row :gutter="20" class="stats-row">
       <el-col :span="6">
-        <el-card class="stat-card" @click="navigateTo('/inst-admin/students')">
+        <el-card class="stat-card">
           <div class="stat-icon" style="background: #36a3f7;">
             <i class="el-icon-user-solid"></i>
           </div>
@@ -18,7 +18,7 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" @click="navigateTo('/inst-admin/teachers')">
+        <el-card class="stat-card">
           <div class="stat-icon" style="background: #34bfa3;">
             <i class="el-icon-s-custom"></i>
           </div>
@@ -29,7 +29,7 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" @click="navigateTo('/inst-admin/defense')">
+        <el-card class="stat-card">
           <div class="stat-icon" style="background: #f4516c;">
             <i class="el-icon-s-operation"></i>
           </div>
@@ -40,7 +40,7 @@
         </el-card>
       </el-col>
       <el-col :span="6">
-        <el-card class="stat-card" @click="navigateTo('/inst-admin/defense')">
+        <el-card class="stat-card">
           <div class="stat-icon" style="background: #ffb822;">
             <i class="el-icon-finished"></i>
           </div>
@@ -76,29 +76,12 @@
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 待办事项 -->
-    <el-card class="todo-card" v-if="todos.length > 0">
-      <template #header>
-        <span class="todo-header"><i class="el-icon-alarm-clock"></i> 待处理事项</span>
-      </template>
-      <el-table :data="todos" style="width: 100%">
-        <el-table-column prop="content" label="事项内容" />
-        <el-table-column prop="time" label="创建时间" width="180" />
-        <el-table-column label="操作" width="120">
-          <template #default="scope">
-            <el-button type="text" size="small" @click="handleTodo(scope.row)">处理</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import request from '@/api';
 
 export default defineComponent({
@@ -111,7 +94,9 @@ export default defineComponent({
     const teacherCount = ref(0);
     const defenseYearCount = ref(0);
     const groupCount = ref(0);
-    const todos = ref([] as any[]);
+
+    // 定时器ID
+    let refreshTimer: number | null = null;
 
     // 加载统计数据
     const loadStats = async () => {
@@ -121,37 +106,109 @@ export default defineComponent({
           const info = JSON.parse(userInfo);
           instituteName.value = info.institute_name || info.department || '计算机学院';
 
-          // 加载统计数据
-          const response = await request.get('/inst-admin/stats', {
-            params: { institute_id: info.institute_id || info.instId || 1 }
-          });
+          // 获取院系ID
+          const instituteId = info.institute_id || info.instId || 1;
 
-          if (response.code === 200) {
-            const data = response.data;
-            studentCount.value = data.student_count || data.studentCount || 0;
-            teacherCount.value = data.teacher_count || data.teacherCount || 0;
-            defenseYearCount.value = data.defense_year_count || data.defenseYearCount || 0;
-            groupCount.value = data.group_count || data.groupCount || 0;
-            todos.value = data.todos || [];
+          // 尝试使用专用统计接口
+          try {
+            const statsRes = await request.get('/api/inst-admin/stats/simple', {
+              params: { institute_id: instituteId }
+            });
+
+            if (statsRes.code === 200) {
+              const data = statsRes.data;
+              studentCount.value = data.studentCount || 0;
+              teacherCount.value = data.teacherCount || 0;
+              defenseYearCount.value = data.defenseYearCount || 0;
+              groupCount.value = data.groupCount || 0;
+
+              // 保存到本地存储
+              saveToLocalStorage();
+              return;
+            }
+          } catch (statsError) {
+            console.log('专用统计接口不可用，尝试备用方案');
           }
+
+          // 备用方案：分别请求各个数据
+          await loadBackupStats(instituteId);
         }
       } catch (error) {
         console.error('加载统计数据失败:', error);
-        studentCount.value = 120;
-        teacherCount.value = 45;
-        defenseYearCount.value = 3;
-        groupCount.value = 6;
-        todos.value = [
-          { content: '审核新加入的教师申请', time: new Date().toLocaleDateString() },
-          { content: '确认答辩分组名单', time: new Date().toLocaleDateString() }
-        ];
+        loadFromLocalStorage();
       }
     };
 
-    // 处理待办事项
-    const handleTodo = (row: any) => {
-      console.log('处理待办事项:', row);
-      ElMessage.info(`正在处理: ${row.content}`);
+    // 备用方案：分别加载各个统计数据
+    const loadBackupStats = async (instituteId: number) => {
+      try {
+        // 并行请求所有数据
+        const [studentRes, teacherRes] = await Promise.all([
+          // 学生数量
+          request.get('/api/students/list', {
+            params: {
+              institute_id: instituteId,
+              page: 1,
+              size: 1,
+              search: ''
+            }
+          }).catch(() => ({ code: 500, data: { total: 0 } })),
+
+          // 教师数量
+          request.get('/api/teachers/count', {
+            params: { institute_id: instituteId }
+          }).catch(() => ({ code: 500, data: 0 }))
+        ]);
+
+        // 设置统计数据
+        if (studentRes.code === 200 && studentRes.data) {
+          studentCount.value = studentRes.data.total || 0;
+        }
+
+        if (teacherRes.code === 200) {
+          teacherCount.value = teacherRes.data || 0;
+        }
+
+        // 答辩相关数据暂时设为0（如果没有对应接口）
+        defenseYearCount.value = 0;
+        groupCount.value = 0;
+
+        // 保存到本地存储
+        saveToLocalStorage();
+
+      } catch (error) {
+        console.error('备用方案加载失败:', error);
+        loadFromLocalStorage();
+      }
+    };
+
+    // 从本地存储加载数据
+    const loadFromLocalStorage = () => {
+      const storedData = localStorage.getItem('dashboard_stats');
+      if (storedData) {
+        const data = JSON.parse(storedData);
+        studentCount.value = data.studentCount || 0;
+        teacherCount.value = data.teacherCount || 0;
+        defenseYearCount.value = data.defenseYearCount || 0;
+        groupCount.value = data.groupCount || 0;
+      } else {
+        // 默认数据
+        studentCount.value = 0;
+        teacherCount.value = 0;
+        defenseYearCount.value = 0;
+        groupCount.value = 0;
+      }
+    };
+
+    // 保存到本地存储
+    const saveToLocalStorage = () => {
+      localStorage.setItem('dashboard_stats', JSON.stringify({
+        studentCount: studentCount.value,
+        teacherCount: teacherCount.value,
+        defenseYearCount: defenseYearCount.value,
+        groupCount: groupCount.value,
+        lastUpdate: new Date().toISOString()
+      }));
     };
 
     // 导航到不同页面
@@ -159,8 +216,29 @@ export default defineComponent({
       router.push(path);
     };
 
+    // 开始自动刷新
+    const startAutoRefresh = () => {
+      // 每10分钟刷新一次数据
+      refreshTimer = window.setInterval(() => {
+        loadStats();
+      }, 10 * 60 * 1000);
+    };
+
+    // 停止自动刷新
+    const stopAutoRefresh = () => {
+      if (refreshTimer) {
+        window.clearInterval(refreshTimer);
+        refreshTimer = null;
+      }
+    };
+
     onMounted(() => {
       loadStats();
+      startAutoRefresh();
+    });
+
+    onUnmounted(() => {
+      stopAutoRefresh();
     });
 
     return {
@@ -169,8 +247,6 @@ export default defineComponent({
       teacherCount,
       defenseYearCount,
       groupCount,
-      todos,
-      handleTodo,
       navigateTo
     };
   }
@@ -180,17 +256,21 @@ export default defineComponent({
 <style scoped>
 .page-content {
   height: 100%;
+  padding: 20px;
+  background-color: #f5f7fa;
 }
 
 .page-title h2 {
-  color: #333;
+  color: #303133;
   margin-bottom: 10px;
-  font-size: 24px;
+  font-size: 28px;
+  font-weight: 500;
 }
 
 .subtitle {
-  color: #666;
+  color: #909399;
   margin-bottom: 30px;
+  font-size: 14px;
 }
 
 .stats-row {
@@ -199,15 +279,17 @@ export default defineComponent({
 
 .stat-card {
   text-align: center;
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-  transition: transform 0.3s;
-  cursor: pointer;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  padding: 20px 0;
+  cursor: default;
 }
 
 .stat-card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-3px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.12);
 }
 
 .stat-icon {
@@ -223,64 +305,69 @@ export default defineComponent({
 }
 
 .stat-content h3 {
-  font-size: 28px;
+  font-size: 32px;
   margin: 0 0 5px 0;
-  color: #333;
+  color: #303133;
+  font-weight: 600;
 }
 
 .stat-content p {
-  color: #666;
+  color: #606266;
   margin: 0;
+  font-size: 14px;
 }
 
 .quick-actions {
-  margin-bottom: 30px;
+  margin-top: 30px;
 }
 
 .quick-card {
-  border-radius: 8px;
+  border-radius: 12px;
   border: none;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.08);
   text-align: center;
   padding: 30px 20px;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s ease;
+  height: 180px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .quick-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
 .quick-card i {
-  font-size: 36px;
+  font-size: 40px;
   margin-bottom: 15px;
 }
 
 .quick-card h3 {
   margin: 10px 0;
-  color: #333;
+  color: #303133;
+  font-size: 18px;
+  font-weight: 500;
 }
 
 .quick-card p {
-  color: #666;
+  color: #909399;
   margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.todo-card {
-  border-radius: 8px;
-  border: none;
-  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
-  margin-bottom: 30px;
-}
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .el-col {
+    margin-bottom: 15px;
+  }
 
-.todo-header {
-  font-weight: bold;
-  color: #333;
-}
-
-.todo-header i {
-  margin-right: 8px;
-  color: #f4516c;
+  .stat-card, .quick-card {
+    height: auto;
+  }
 }
 </style>

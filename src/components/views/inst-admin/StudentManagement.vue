@@ -18,9 +18,6 @@
                         <el-button type="primary" @click="handleAdd">
                             <i class="el-icon-plus"></i> 添加学生
                         </el-button>
-                        <el-button type="success" @click="showImportDialog = true">
-                            <i class="el-icon-upload"></i> 导入
-                        </el-button>
                     </div>
                 </div>
             </template>
@@ -151,43 +148,6 @@
                 <el-button type="primary" @click="handleAssignSubmit">分配</el-button>
             </template>
         </el-dialog>
-
-        <!-- 导入对话框 -->
-        <el-dialog
-            v-model="showImportDialog"
-            title="导入学生数据"
-            width="500px"
-        >
-            <div class="import-instructions">
-                <h4>导入说明：</h4>
-                <ol>
-                    <li>下载模板文件，按要求填写数据</li>
-                    <li>支持Excel格式（.xlsx, .xls）</li>
-                    <li>每次最多导入500条记录</li>
-                    <li>学号不能重复</li>
-                </ol>
-            </div>
-
-            <el-upload
-                class="upload-demo"
-                drag
-                action="/api/students/import"
-                :before-upload="beforeUpload"
-                :on-success="handleImportSuccess"
-                :on-error="handleImportError"
-                :show-file-list="false"
-                accept=".xlsx,.xls"
-            >
-                <i class="el-icon-upload"></i>
-                <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-                <div class="el-upload__tip" slot="tip">只能上传excel文件，且不超过10MB</div>
-            </el-upload>
-
-            <template #footer>
-                <el-button @click="showImportDialog = false">关闭</el-button>
-                <el-button type="primary" @click="downloadTemplate">下载模板</el-button>
-            </template>
-        </el-dialog>
     </div>
 </template>
 
@@ -204,7 +164,6 @@ export default defineComponent({
         const loading = ref(false);
         const editDialogVisible = ref(false);
         const assignDialogVisible = ref(false);
-        const showImportDialog = ref(false);
         const isEditMode = ref(false);
 
         const searchKeyword = ref('');
@@ -429,30 +388,6 @@ export default defineComponent({
             }).catch(() => {});
         };
 
-        // 导入相关（暂时禁用）
-        const beforeUpload = (file: File) => {
-            ElMessage.warning('导入功能暂未实现');
-            return false;
-        };
-
-        const handleImportSuccess = (response: any) => {
-            if (response.code === 200) {
-                ElMessage.success('导入成功');
-                showImportDialog.value = false;
-                loadStudents();
-            } else {
-                ElMessage.error(response.message || '导入失败');
-            }
-        };
-
-        const handleImportError = () => {
-            ElMessage.error('导入失败');
-        };
-
-        const downloadTemplate = () => {
-            ElMessage.warning('模板下载功能暂未实现');
-        };
-
         // 分页
         const handleSizeChange = (size: number) => {
             pageSize.value = size;
@@ -484,7 +419,6 @@ export default defineComponent({
             loading,
             editDialogVisible,
             assignDialogVisible,
-            showImportDialog,
             isEditMode,
             searchKeyword,
             studentList,
@@ -509,10 +443,6 @@ export default defineComponent({
             handleYearChange,
             handleAssignSubmit,
             handleDelete,
-            beforeUpload,
-            handleImportSuccess,
-            handleImportError,
-            downloadTemplate,
             handleSizeChange,
             handlePageChange,
             init
@@ -550,36 +480,6 @@ export default defineComponent({
 .pagination {
     margin-top: 20px;
     text-align: center;
-}
-
-.import-instructions {
-    margin-bottom: 20px;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 4px;
-}
-
-.import-instructions h4 {
-    margin-bottom: 10px;
-    color: #333;
-}
-
-.import-instructions ol {
-    margin-left: 20px;
-    color: #666;
-}
-
-.import-instructions li {
-    margin-bottom: 5px;
-}
-
-.upload-demo {
-    text-align: center;
-}
-
-.upload-demo .el-upload-dragger {
-    width: 100%;
-    height: 180px;
 }
 
 .el-button--text {
