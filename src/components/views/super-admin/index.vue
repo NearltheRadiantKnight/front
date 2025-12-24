@@ -100,7 +100,7 @@ export default {
         </el-card>
       </el-col>
       <el-col :span="8">
-        <el-card class="quick-card" @click="navigateTo('adminadd')">
+        <el-card class="quick-card" @click="navigateTo('SuperAdminAdminAdd')">
           <i class="el-icon-user-add" style="color: #67C23A;"></i>
           <h3>添加管理员</h3>
           <p>创建院系管理员账号</p>
