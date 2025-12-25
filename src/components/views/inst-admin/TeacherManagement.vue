@@ -246,18 +246,15 @@ export default defineComponent({
         const loadTeachers = async () => {
             loading.value = true;
             try {
-                const response = await request.get('/api/teachers/list', {
+                const response = await request.get('/teachers/list', {
                     params: {
                         institute_id: instituteId.value,
-                        page: currentPage.value,
-                        size: pageSize.value,
-                        search: searchKeyword.value
                     }
                 });
 
                 if (response.code === 200) {
                     // 处理字段映射
-                    teacherList.value = (response.data.list || []).map(teacher => {
+                    teacherList.value = (response.data || []).map(teacher => {
                         // 生成显示名称
                         let displayName = '未知教师';
                         if (teacher.realName) {
@@ -317,7 +314,7 @@ export default defineComponent({
             if (!valid) return;
 
             try {
-                const response = await request.post('/api/teachers/create', {
+                const response = await request.post('/teachers/create', {
                     id: addForm.value.id,
                     realName: addForm.value.name,
                     phone: addForm.value.phone,
@@ -399,7 +396,7 @@ export default defineComponent({
 
                 if (assignForm.value.isLeader) {
                     // 如果是设为组长，调用组长设置接口
-                    const response = await request.post('/api/teachers/set-leader', null, { params });
+                    const response = await request.post('/teachers/set-leader', null, { params });
                     if (response.code === 200) {
                         ElMessage.success('分配小组成功（已设为组长）');
                         assignDialogVisible.value = false;
@@ -409,7 +406,7 @@ export default defineComponent({
                     }
                 } else {
                     // 如果不是组长，调用分配教师到小组的接口（需要后端提供）
-                    const response = await request.post('/api/teachers/assign-group', null, { params });
+                    const response = await request.post('/teachers/assign-group', null, { params });
                     if (response.code === 200) {
                         ElMessage.success('分配小组成功');
                         assignDialogVisible.value = false;
@@ -427,7 +424,7 @@ export default defineComponent({
         // 移除小组
         const handleRemoveGroup = async () => {
             try {
-                const response = await request.post('/api/teachers/remove-group', null, {
+                const response = await request.post('/teachers/remove-group', null, {
                     params: { teacher_id: selectedTeacher.value.id }
                 });
                 if (response.code === 200) {
@@ -455,7 +452,7 @@ export default defineComponent({
                 }
             ).then(async () => {
                 try {
-                    const response = await request.delete(`/api/teachers/delete/${row.id}`);
+                    const response = await request.delete(`/teachers/delete/${row.id}`);
                     if (response.code === 200) {
                         ElMessage.success('删除成功');
                         loadTeachers();

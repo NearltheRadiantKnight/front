@@ -31,6 +31,7 @@
         :form-data="yearForm"
         :is-edit="isEditingYear"
         :years="years"
+        @update-visible="updateVisible"
         @submit="handleSubmitYear"
     />
 
@@ -156,6 +157,10 @@ export default {
       } catch (error) {
         this.$message.error('删除失败：' + error.message)
       }
+    },
+
+    updateVisible(visible){
+      this.yearDialogVisible = visible;
     }
   },
   mounted() {

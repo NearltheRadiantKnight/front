@@ -76,7 +76,7 @@ export const userApi = {
     return get('/user/check-username', { username })
   },
   getTeacherCount: ()=>{
-    return get<number>('/teacher/count')
+    return get<number>('/teachers/count')
   },
 
   // 获取当前签名

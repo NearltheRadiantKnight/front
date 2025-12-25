@@ -14,7 +14,6 @@
         @edit-group="handleEditGroup"
         @manage-students="handleManageStudents"
         @view-students="handleViewStudents"
-        @toggle-status="handleToggleGroupStatus"
         @delete-group="handleDeleteGroup"
     />
 
@@ -24,7 +23,6 @@
         :form-data="currentGroup"
         :teachers="teacherList"
         :year="year"
-        :is-edit="!!currentGroup.id"
         @submit="handleSubmitGroup"
     />
 
@@ -77,7 +75,6 @@ export default {
       groups: [],
       teacherList: [],
 
-      // 对话框状态
       groupFormVisible: false,
       studentDialogVisible: false,
       studentListDialogVisible: false,
@@ -128,7 +125,7 @@ export default {
     },
 
     async fetchTeachers() {
-      request.get("/teacher/list").then(res=>{
+      request.get("/teachers/all").then(res=>{
         this.teacherList = res.data;
       });
     },
@@ -150,23 +147,14 @@ export default {
     },
 
     async handleSubmitGroup(formData) {
-      request.post("/groups/create", {...formData});
-    },
-
-    async handleToggleGroupStatus(group) {
-      try {
-        await this.$api.defenseGroup.updateStatus(group.id, group.status)
-        this.$message.success('状态更新成功')
-      } catch (error) {
-        // 回滚状态
-        group.status = group.status === 1 ? 0 : 1
-        this.$message.error('状态更新失败')
-      }
+      request.post("/groups/update", {...formData});
     },
 
     async handleDeleteGroup(group) {
       try {
-        await this.$api.defenseGroup.delete(group.id)
+        request.post("/groups/delete", {...group}).then(res=>{
+
+        });
         // 从列表中移除
         const index = this.groups.findIndex(g => g.id === group.id)
         if (index !== -1) {

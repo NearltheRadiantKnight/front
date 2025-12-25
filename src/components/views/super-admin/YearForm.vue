@@ -30,7 +30,7 @@
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="()=>{$emit('update-visible', false)}">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">
           确定
         </el-button>
@@ -59,7 +59,7 @@ export default {
       default: false
     }
   },
-  emits: ['update:visible', 'submit'],
+  emits: ['update-visible', 'submit'],
   data() {
     return {
       submitting: false,
@@ -80,7 +80,7 @@ export default {
         return this.visible
       },
       set(value) {
-        this.$emit('update:visible', value)
+        this.$emit('update-visible', value)
       }
     }
   },

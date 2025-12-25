@@ -1,7 +1,7 @@
 <template>
   <el-dialog
       v-model="visible"
-      :title="isEdit ? '编辑答辩组' : '新增答辩组'"
+      :title="'编辑答辩组'"
       width="500px"
       @closed="resetForm"
   >
@@ -13,7 +13,7 @@
     >
       <el-form-item label="组长" prop="adminId">
         <el-select
-            v-model="formData.adminId"
+            v-model="formData.admin_id"
             placeholder="请选择答辩组组长"
             style="width: 100%"
             filterable
@@ -22,14 +22,14 @@
           <el-option
               v-for="teacher in teachers"
               :key="teacher.id"
-              :label="`${teacher.realName} (${teacher.id})`"
+              :label="`${teacher.real_name} (${teacher.id})`"
               :value="teacher.id"
           ></el-option>
         </el-select>
       </el-form-item>
-      <el-form-item label="最大学生数" prop="maxStudents">
+      <el-form-item label="最大学生数">
         <el-input-number
-            v-model.number="formData.maxStudents"
+            v-model="formData.maxStudents"
             :min="1"
             :max="30"
             placeholder="请输入最大学生数"
@@ -39,7 +39,7 @@
     </el-form>
     <template #footer>
       <span class="dialog-footer">
-        <el-button @click="visible = false">取消</el-button>
+        <el-button @click="visible = false;">取消</el-button>
         <el-button type="primary" @click="handleSubmit" :loading="submitting">
           确定
         </el-button>
@@ -72,10 +72,6 @@ export default {
     year: {
       type: Object,
       default: null
-    },
-    isEdit: {
-      type: Boolean,
-      default: false
     }
   },
   emits: ['update:modelValue', 'submit'],
@@ -83,10 +79,7 @@ export default {
     return {
       submitting: false,
       rules: {
-        name: [
-          { required: true, message: '请输入答辩组名称', trigger: 'blur' }
-        ],
-        adminId: [
+        admin_id: [
           { required: true, message: '请选择组长', trigger: 'change' }
         ],
         maxStudents: [
@@ -116,8 +109,8 @@ export default {
             year: this.year?.year || this.formData.year
           }
           this.$emit('submit', submitData)
-          this.submitting = false
-          this.visible = false
+          this.submitting = false;
+          this.visible = false;
         }
       })
     },

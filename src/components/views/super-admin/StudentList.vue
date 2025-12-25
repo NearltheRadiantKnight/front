@@ -142,7 +142,7 @@ export default {
     // 初始化数据
     async fetchStudents() {
       this.loading = true
-      request.get("/student/all").then(res=>{
+      request.get("/group/studentlist?group_id="+this.group.id).then(res=>{
         this.students = res.data;
       }).finally(this.loading = false);
     },

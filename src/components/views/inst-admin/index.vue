@@ -145,7 +145,7 @@ export default defineComponent({
         // 并行请求所有数据
         const [studentRes, teacherRes] = await Promise.all([
           // 学生数量
-          request.get('/api/students/list', {
+          request.get('/students/list', {
             params: {
               institute_id: instituteId,
               page: 1,
@@ -155,7 +155,7 @@ export default defineComponent({
           }).catch(() => ({ code: 500, data: { total: 0 } })),
 
           // 教师数量
-          request.get('/api/teachers/count', {
+          request.get('/teachers/count', {
             params: { institute_id: instituteId }
           }).catch(() => ({ code: 500, data: 0 }))
         ]);
