@@ -11,12 +11,6 @@
         :rules="rules"
         label-width="100px"
     >
-      <el-form-item label="答辩组名称" prop="name">
-        <el-input
-            v-model="formData.name"
-            placeholder="请输入答辩组名称，如：第一答辩组"
-        ></el-input>
-      </el-form-item>
       <el-form-item label="组长" prop="adminId">
         <el-select
             v-model="formData.adminId"
@@ -41,12 +35,6 @@
             placeholder="请输入最大学生数"
             style="width: 100%"
         ></el-input-number>
-      </el-form-item>
-      <el-form-item label="状态" prop="status">
-        <el-radio-group v-model="formData.status">
-          <el-radio :label="1">启用</el-radio>
-          <el-radio :label="0">停用</el-radio>
-        </el-radio-group>
       </el-form-item>
     </el-form>
     <template #footer>
@@ -73,10 +61,8 @@ export default {
       default: () => ({
         id: null,
         year: '',
-        name: '',
         adminId: '',
         maxStudents: 10,
-        status: 1
       })
     },
     teachers: {

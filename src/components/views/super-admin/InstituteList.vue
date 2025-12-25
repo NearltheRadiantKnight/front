@@ -4,7 +4,7 @@
             <template #header>
                 <div class="card-header">
                     <span>院系列表</span>
-                    <el-button type="primary" @click="()=>{this.$router.push('/instituteadd');}">
+                    <el-button type="primary" @click="()=>{this.$router.push('/admin/instituteadd');}">
                         <i class="el-icon-plus"></i> 添加院系
                     </el-button>
                 </div>

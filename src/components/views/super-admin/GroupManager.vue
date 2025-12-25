@@ -50,6 +50,7 @@ import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
 import StudentAssignmentDialog from './StudentAssignment.vue'
 import StudentListDialog from './StudentList.vue'
+import request from "@/api/index.ts";
 
 export default {
   name: 'GroupManager',
@@ -85,10 +86,8 @@ export default {
       currentGroup: {
         id: null,
         year: '',
-        name: '',
         adminId: '',
         maxStudents: 10,
-        status: 1
       },
 
       // 选中项
@@ -120,54 +119,18 @@ export default {
     // 初始化数据
     async fetchGroups() {
       this.loading = true
-      try {
-        if (this.year) {
-          const response = await this.$api.defenseGroup.getByYear(this.year.year)
-          this.groups = response.data
-        }
-      } catch (error) {
-        console.error('获取答辩组数据失败:', error)
-        this.$message.error('获取答辩组数据失败')
-        // 模拟数据
-        this.groups = [
-          {
-            id: 1,
-            year: this.year?.year || 2025,
-            name: '第一答辩组',
-            adminId: '123123',
-            adminName: '张老师',
-            maxStudents: 15,
-            studentCount: 12,
-            status: 1
-          },
-          {
-            id: 2,
-            year: this.year?.year || 2025,
-            name: '第二答辩组',
-            adminId: '123456',
-            adminName: '李老师',
-            maxStudents: 15,
-            studentCount: 10,
-            status: 1
-          }
-        ]
-      } finally {
-        this.loading = false
-      }
+
+      request.get("/groups/all?year="+this.year.year).then(res=>{
+        console.log(res.data)
+        this.groups = res.data;
+      }).finally(this.loading = false);
+
     },
 
     async fetchTeachers() {
-      try {
-        const response = await this.$api.teacher.getAll()
-        this.teacherList = response.data
-      } catch (error) {
-        console.error('获取教师列表失败:', error)
-        this.teacherList = [
-          { id: '123123', realName: '张三', phone: '13800138000' },
-          { id: '123456', realName: '李四', phone: '13800138001' },
-          { id: '234567', realName: '王五', phone: '13800138002' }
-        ]
-      }
+      request.get("/teacher/list").then(res=>{
+        this.teacherList = res.data;
+      });
     },
 
     // 答辩组操作
@@ -175,10 +138,8 @@ export default {
       this.currentGroup = {
         id: null,
         year: this.year?.year || '',
-        name: '',
         adminId: '',
         maxStudents: 10,
-        status: 1
       }
       this.groupFormVisible = true
     },
@@ -189,31 +150,7 @@ export default {
     },
 
     async handleSubmitGroup(formData) {
-      try {
-        if (formData.id) {
-          // 更新答辩组
-          await this.$api.defenseGroup.update(formData.id, formData)
-          // 更新本地数据
-          const index = this.groups.findIndex(g => g.id === formData.id)
-          if (index !== -1) {
-            this.groups[index] = { ...this.groups[index], ...formData }
-          }
-          this.$message.success('更新答辩组成功')
-        } else {
-          const response = await this.$api.defenseGroup.create(formData)
-          // 添加新答辩组
-          this.groups.push({
-            ...formData,
-            id: response.data.id,
-            adminName: this.teacherList.find(t => t.id === formData.adminId)?.realName || '',
-            studentCount: 0
-          })
-          this.$message.success('新增答辩组成功')
-          this.$emit('refresh')
-        }
-      } catch (error) {
-        this.$message.error('操作失败：' + error.message)
-      }
+      request.post("/groups/create", {...formData});
     },
 
     async handleToggleGroupStatus(group) {

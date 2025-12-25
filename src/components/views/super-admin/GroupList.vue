@@ -22,25 +22,15 @@
     </div>
 
     <el-table :data="filteredGroups" v-loading="loading" style="margin-bottom: 20px;">
-      <el-table-column prop="name" label="答辩组名称" width="150"></el-table-column>
-      <el-table-column prop="adminName" label="组长" width="150"></el-table-column>
+      <el-table-column prop="admin_id" label="组长" width="150"></el-table-column>
       <el-table-column label="学生数" width="120">
         <template #default="{ row }">
-          <span :class="{ 'text-danger': row.studentCount > row.maxStudents }">
-            {{ row.studentCount || 0 }} / {{ row.maxStudents }}
+          <span :class="{ 'text-danger': row.student_count > row.max_student_count }">
+            {{ row.student_count || 0 }} / {{ row.max_student_count }}
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-switch
-              v-model="row.status"
-              :active-value="1"
-              :inactive-value="0"
-              @change="$emit('toggle-status', row)"
-          ></el-switch>
-        </template>
-      </el-table-column>
+
       <el-table-column label="操作" width="350" fixed="right">
         <template #default="{ row }">
           <el-button size="small" @click="$emit('edit-group', row)">编辑</el-button>
@@ -124,7 +114,6 @@ export default {
       const keyword = this.searchKeyword.toLowerCase()
       return this.groups.filter(group => {
         return (
-            (group.name && group.name.toLowerCase().includes(keyword)) ||
             (group.adminName && group.adminName.toLowerCase().includes(keyword))
         )
       })

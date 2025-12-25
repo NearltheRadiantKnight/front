@@ -12,8 +12,6 @@
                 </div>
             </div>
         </el-card>
-        <router-view/>
-        <!-- 指标管理 -->
         <el-card class="indicators-card">
             <template #header>
                 <div class="card-header">
@@ -153,13 +151,13 @@
 </template>
 
 <script lang="ts">
-import {defineComponent, ref, computed, reactive} from 'vue';
+import {defineComponent, ref, computed, reactive, onMounted} from 'vue';
 import {ElMessage, ElMessageBox} from 'element-plus';
 import request from "@/api";
 
 export default defineComponent({
     name: 'EvaluationThesis',
-    setup() {
+  setup() {
         const saving = ref(false);
         const currentYear = new Date().getFullYear();
 
@@ -188,7 +186,8 @@ export default defineComponent({
             }
         ]);
         const year = ref(currentYear);
-        const years = ref([2024,2025]);
+        const years = ref([]);
+
 
         // 默认示例
         const defaultExamples = ref([
@@ -220,7 +219,15 @@ export default defineComponent({
             return 'warning';
         });
 
-        // 更新总权值
+        const allyear = () => {
+            request.get("/defense/allyear").then(res=>{
+              for (let i = 0; i < res.data.length; i++)
+              {
+                years.value.push(res.data[i]["year"]);
+              }
+            });
+        };
+
         const updateTotalWeight = () => {
             // 自动调整权值逻辑
             if (totalWeight.value > 100) {
@@ -231,7 +238,6 @@ export default defineComponent({
             }
         };
 
-        // 验证单个指标
         const validateIndicator = (indicator: any) => {
             if (indicator.weight < 0) indicator.weight = 0;
             if (indicator.weight > 100) indicator.weight = 100;
@@ -299,7 +305,7 @@ export default defineComponent({
             saving.value = true;
             try {
                 console.log({...indicators.value});
-                request.post("/evaluation/save", {...indicators.value});
+                request.post("/evaluation/save?type=1&year="+year.value, {...indicators.value});
 
                 ElMessage.success({
                     message: '毕业论文评价指标保存成功',
@@ -318,10 +324,8 @@ export default defineComponent({
         };
 
         const loadSettings = async () => {
-            request.get("/evaluation/load").then((res: any) => {
+            request.get("/evaluation/load?type=1&year="+year.value).then((res: any) => {
                 indicators.value = res.data;
-                console.log(indicators.value);
-                console.log(res.data);
             });
 
         };
@@ -343,7 +347,6 @@ export default defineComponent({
                 ElMessage.success('已重置所有设置');
             });
         };
-
         return {
             indicators,
             defaultExamples,
@@ -354,6 +357,7 @@ export default defineComponent({
             currentYear,
             year,
             years,
+            allyear,
             updateTotalWeight,
             validateIndicator,
             applyExample,
@@ -362,6 +366,9 @@ export default defineComponent({
             loadSettings,
             resetSettings
         };
+    },
+    mounted() {
+      this.allyear();
     }
 });
 </script>

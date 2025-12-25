@@ -1,7 +1,7 @@
 <template>
   <el-dialog
       v-model="visible"
-      :title="`${group?.name} - 学生分配`"
+      :title="`学生分配`"
       width="900px"
       top="2vh"
   >
@@ -27,35 +27,6 @@
       <div class="assign-students">
         <h4>分配新学生</h4>
         <div class="assign-controls">
-          <el-select
-              v-model="selectedStudentId"
-              placeholder="选择学生"
-              style="width: 250px; margin-right: 15px;"
-              size="medium"
-              clearable
-          >
-            <el-option
-                v-for="student in availableStudents"
-                :key="student.id"
-                :label="`${student.id} - ${student.realName}`"
-                :value="student.id"
-            >
-              <span>{{ student.id }} - {{ student.realName }}</span>
-              <span style="float: right; color: #8492a6; font-size: 14px">
-                {{ student.teacherName }}
-              </span>
-            </el-option>
-          </el-select>
-
-          <el-button
-              type="primary"
-              size="medium"
-              :disabled="!selectedStudentId"
-              @click="assignStudent"
-          >
-            分配
-          </el-button>
-
           <el-button
               type="warning"
               size="medium"

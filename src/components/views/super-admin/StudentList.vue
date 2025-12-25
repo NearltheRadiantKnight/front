@@ -1,7 +1,7 @@
 <template>
   <el-dialog
       v-model="visible"
-      :title="`${group?.name} - 学生列表`"
+      :title="`学生列表`"
       width="900px"
       top="10vh"
   >
@@ -80,6 +80,8 @@
 </template>
 
 <script>
+import request from "@/api/index.ts";
+
 export default {
   name: 'StudentListDialog',
   props: {
@@ -140,61 +142,9 @@ export default {
     // 初始化数据
     async fetchStudents() {
       this.loading = true
-      try {
-        // 调用API获取该答辩组的学生列表
-        const response = await this.$api.defenseGroup.getStudents(this.group.id)
-        this.students = response.data
-
-        // 如果没有数据，使用模拟数据
-        if (this.students.length === 0) {
-          this.students = [
-            {
-              id: '2023001',
-              realName: '王小明',
-              teacherName: '张老师',
-              institute: '计算机学院',
-              defenseTitle: '基于深度学习的图像识别系统研究'
-            },
-            {
-              id: '2023002',
-              realName: '李小红',
-              teacherName: '李老师',
-              institute: '计算机学院',
-              defenseTitle: '智能推荐系统的设计与实现'
-            },
-            {
-              id: '2023003',
-              realName: '赵小刚',
-              teacherName: '王老师',
-              institute: '软件学院',
-              defenseTitle: ''
-            }
-          ]
-        }
-      } catch (error) {
-        console.error('获取学生列表失败:', error)
-        this.$message.error('获取学生列表失败')
-
-        // 使用模拟数据
-        this.students = [
-          {
-            id: '2023001',
-            realName: '王小明',
-            teacherName: '张老师',
-            institute: '计算机学院',
-            defenseTitle: '基于深度学习的图像识别系统研究'
-          },
-          {
-            id: '2023002',
-            realName: '李小红',
-            teacherName: '李老师',
-            institute: '计算机学院',
-            defenseTitle: '智能推荐系统的设计与实现'
-          }
-        ]
-      } finally {
-        this.loading = false
-      }
+      request.get("/student/all").then(res=>{
+        this.students = res.data;
+      }).finally(this.loading = false);
     },
 
     async removeStudent(student) {
