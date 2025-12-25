@@ -247,41 +247,7 @@ router.beforeEach((to, from, next) => {
       }
     }
 
-    // 权限检查：确保用户只能访问自己角色的路径
-    const currentPath = to.path
     let hasPermission = true
-
-    switch (userType) {
-      case 'admin':
-        if (!currentPath.startsWith('/admin')) {
-          console.log('管理员尝试访问非管理员路径，重定向')
-          hasPermission = false
-        }
-        break
-      case 'instAdmin':
-        if (!currentPath.startsWith('/inst-admin')) {
-          console.log('院系管理员尝试访问非授权路径，重定向')
-          hasPermission = false
-        }
-        break
-      case 'defenseLeader':
-        if (!currentPath.startsWith('/defense-leader')) {
-          console.log('答辩组长尝试访问非授权路径，重定向')
-          hasPermission = false
-        }
-        break
-      case 'teacher':
-        if (!currentPath.startsWith('/teacher')) {
-          console.log('教师尝试访问非授权路径，重定向')
-          hasPermission = false
-        }
-        break
-      default:
-        // 未知用户类型，清除登录状态
-        localStorage.clear()
-        next({ name: 'login' })
-        return
-    }
 
     if (!hasPermission) {
       // 没有权限，跳转到对应角色的首页
@@ -303,8 +269,6 @@ router.beforeEach((to, from, next) => {
     }
   }
 
-  // 所有检查通过，允许访问
-  console.log('允许访问:', to.path)
   next()
 })
 

@@ -22,14 +22,7 @@
       </el-table-column>
       <el-table-column prop="defenseCount" label="答辩学生数" width="120">
         <template #default="{ row }">
-          <el-tag type="info" size="small">{{ row.defenseCount }} 人</el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column label="状态" width="100">
-        <template #default="{ row }">
-          <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-            {{ row.status === 'active' ? '启用' : '停用' }}
-          </el-tag>
+          <el-tag type="info" size="small">{{ row.defenseCount || 0 }} 人</el-tag>
         </template>
       </el-table-column>
       <el-table-column label="操作" width="200" fixed="right">
@@ -174,8 +167,4 @@ export default {
   align-items: center;
 }
 
-/* 空状态样式 */
-.el-empty {
-  padding: 40px 0;
-}
 </style>

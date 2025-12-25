@@ -28,8 +28,8 @@
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column label="答辩小组" width="150">
                     <template #default="scope">
-                        <el-tag v-if="scope.row.groupName" size="small">
-                            {{ scope.row.groupName }}
+                        <el-tag v-if="scope.row.dbgroup" size="small">
+                            {{ scope.row.dbgroup }}
                         </el-tag>
                         <span v-else style="color: #999;">未分配</span>
                     </template>
@@ -41,7 +41,6 @@
                             type="text"
                             size="small"
                             @click="handleAssignGroup(scope.row)"
-                            :disabled="!hasActiveYears"
                         >
                             分配小组
                         </el-button>
@@ -137,7 +136,7 @@
                         <el-option
                             v-for="group in groupOptions"
                             :key="group.id"
-                            :label="group.name"
+                            :label="group.realName"
                             :value="group.id"
                         />
                     </el-select>
@@ -207,23 +206,19 @@ export default defineComponent({
         const selectedGroupId = ref(null as number | null);
         const yearOptions = ref([] as any[]);
         const groupOptions = ref([] as any[]);
-        const hasActiveYears = ref(false);
 
         // 加载学生列表
         const loadStudents = async () => {
             loading.value = true;
             try {
-                const response = await request.get('/api/students/list', {
+                const response = await request.get('/students/list', {
                     params: {
-                        institute_id: instituteId.value,
-                        page: currentPage.value,
-                        size: pageSize.value,
-                        search: searchKeyword.value
+                        institute_id: instituteId.value
                     }
                 });
-
                 if (response.code === 200) {
                     studentList.value = response.data.list || [];
+                    console.log(studentList.value)
                     total.value = response.data.total || 0;
                 }
             } catch (error) {
@@ -275,7 +270,7 @@ export default defineComponent({
             if (!valid) return;
 
             try {
-                const url = isEditMode.value ? '/api/students/update' : '/api/students/create';
+                const url = isEditMode.value ? '/students/update' : '/students/create';
 
                 // 转换字段名：前端字段名 -> 后端字段名
                 const requestData = {
@@ -314,12 +309,9 @@ export default defineComponent({
 
         const loadYearOptions = async () => {
             try {
-                const response = await request.get('/api/defense-year/list', {
-                    params: { institute_id: instituteId.value }
-                });
+                const response = await request.get('/defense/allyear');
                 if (response.code === 200) {
                     yearOptions.value = response.data;
-                    hasActiveYears.value = yearOptions.value.some((year: any) => year.status === 1);
                 }
             } catch (error) {
                 console.error('加载年份失败:', error);
@@ -328,7 +320,7 @@ export default defineComponent({
 
         const handleYearChange = async (year: number) => {
             try {
-                const response = await request.get('/api/defense-year/groups', {
+                const response = await request.get('/groups/all', {
                     params: { year, institute_id: instituteId.value }
                 });
                 if (response.code === 200) {
@@ -346,7 +338,7 @@ export default defineComponent({
             }
 
             try {
-                const response = await request.post('/api/students/assign-group', {
+                const response = await request.post('/students/assign-group', {
                     student_id: selectedStudent.value.id, // 使用学号作为student_id
                     group_id: selectedGroupId.value
                 });
@@ -376,7 +368,7 @@ export default defineComponent({
                 }
             ).then(async () => {
                 try {
-                    const response = await request.delete(`/api/students/delete/${row.id}`);
+                    const response = await request.delete(`/students/delete/${row.id}`);
                     if (response.code === 200) {
                         ElMessage.success('删除成功');
                         loadStudents();
@@ -405,13 +397,14 @@ export default defineComponent({
             if (userInfo) {
                 try {
                     const info = JSON.parse(userInfo);
-                    instituteId.value = info.institute_id || info.instId || 1;
+                    instituteId.value = info.InstId;
                 } catch (error) {
                     console.error('解析用户信息失败:', error);
                 }
             }
 
             loadStudents();
+            loadYearOptions();
         };
 
         return {
@@ -432,7 +425,6 @@ export default defineComponent({
             selectedGroupId,
             yearOptions,
             groupOptions,
-            hasActiveYears,
 
             loadStudents,
             handleSearch,

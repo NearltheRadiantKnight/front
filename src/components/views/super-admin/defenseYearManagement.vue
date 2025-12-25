@@ -12,17 +12,6 @@
         <el-button type="primary" @click="handleAddYear">
           <i class="el-icon-plus"></i> 新增答辩年份
         </el-button>
-        <div style="flex: 1"></div>
-        <el-input
-            v-model="searchKeyword"
-            placeholder="搜索年份"
-            style="width: 300px; margin-right: 10px"
-            clearable
-        >
-          <template #prefix>
-            <i class="el-icon-search"></i>
-          </template>
-        </el-input>
       </div>
     </el-card>
 
@@ -42,6 +31,7 @@
         :form-data="yearForm"
         :is-edit="isEditingYear"
         :years="years"
+        @update-visible="updateVisible"
         @submit="handleSubmitYear"
     />
 
@@ -58,6 +48,8 @@
 import YearList from './YearList.vue'
 import YearFormDialog from './YearForm.vue'
 import GroupManager from './GroupManager.vue'
+import request from "@/api";
+import {ElMessage} from "element-plus";
 
 export default {
   name: 'YearManagement',
@@ -107,46 +99,22 @@ export default {
   methods: {
     // 初始化数据
     async fetchYears() {
-      this.loading = true
-      try {
-        const response = await this.$api.defenseYear.getAll()
-        this.years = response.data
-      } catch (error) {
-        console.error('获取年份数据失败:', error)
-        this.$message.error('获取年份数据失败')
-        // 临时模拟数据
-        this.years = [
-          {
-            year: 2025,
-            groupCount: 3,
-            defenseCount: 45,
-            status: 'active',
-            createdTime: '2024-03-15',
-            description: '2025年毕业答辩'
-          },
-          {
-            year: 2024,
-            groupCount: 2,
-            defenseCount: 32,
-            status: 'inactive',
-            createdTime: '2023-03-10',
-            description: '2024年毕业答辩'
-          }
-        ]
-      } finally {
-        this.loading = false
-      }
+      this.loading = true;
+      request.get("/defense/allyear").then((res)=>{
+          this.years = res.data;
+      }).finally(this.loading = false);
+
     },
 
     // 事件处理
     handleAddYear() {
-      this.isEditingYear = false
+      this.isEditingYear = false;
       this.yearForm = {
         year: new Date().getFullYear(),
-        status: 'active',
-        description: ''
-      }
-      this.yearDialogVisible = true
+        status: 'active'
+      };
+      this.yearDialogVisible = true;
+
     },
 
     handleEditYear(year, index) {
@@ -162,25 +130,12 @@ export default {
     },
 
     async handleSubmitYear(formData) {
-      try {
-        if (this.isEditingYear) {
-          await this.$api.defenseYear.update(formData.year, formData)
-          this.years[this.editingYearIndex] = { ...formData }
-          this.$message.success('更新答辩年份成功')
-        } else {
-          await this.$api.defenseYear.create(formData)
-          this.years.unshift({
-            ...formData,
-            groupCount: 0,
-            defenseCount: 0,
-            createdTime: new Date().toISOString()
-          })
-          this.$message.success('新增答辩年份成功')
-        }
-        this.yearDialogVisible = false
-      } catch (error) {
-        this.$message.error('操作失败：' + error.message)
-      }
+        request.post("/defense/yearadd", {...formData}).then((res)=>{
+            ElMessage.success("年份创建成功");
+        });
+        this.isEditingYear = false;
+        this.yearDialogVisible = false;
+
     },
 
     async handleToggleYearStatus(year, index) {
@@ -202,6 +157,10 @@ export default {
       } catch (error) {
         this.$message.error('删除失败：' + error.message)
       }
+    },
+
+    updateVisible(visible){
+      this.yearDialogVisible = visible;
     }
   },
   mounted() {
