@@ -36,13 +36,6 @@
           <el-button size="small" @click="$emit('edit-group', row)">编辑</el-button>
           <el-button
               size="small"
-              type="primary"
-              @click="$emit('manage-students', row)"
-          >
-            分配学生
-          </el-button>
-          <el-button
-              size="small"
               type="warning"
               @click="$emit('view-students', row)"
           >

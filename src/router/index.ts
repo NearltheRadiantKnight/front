@@ -9,6 +9,25 @@ const router = createRouter({
       name: 'login',
       component: () => import('@/components/common/login.vue')
     },
+    {
+      path:'/common',
+      name:'Common',
+      children:[
+        {
+          path: 'signature-upload',
+          name: 'SignatureUpload',
+          component: () => import('@/components/common/SignatureUpload.vue'),
+          meta: {
+            title: '签名上传'
+          }
+        },
+        {
+          path: 'passwordModify',
+          name: 'InstAdminPasswordModify',
+          component: () => import('@/components/common/passwordModify.vue')
+        }
+      ]
+    },
 
     // 超级管理员
     {
@@ -56,16 +75,11 @@ const router = createRouter({
           name: 'SuperAdminDenfenseYear',
           component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
         },
-        {
-          path: 'passwordModify',
-          name: 'SuperAdminPasswordModify',
-          component: () => import('@/components/common/passwordModify.vue')
-        },
-        {
-          path: '/:pathMatch(.*)*',
-          name:'SuperAdminNotFound',
-          component:()=>import('@/components/views/super-admin/Other.vue')
-        }
+        // {
+        //   path: 'passwordModify',
+        //   name: 'SuperAdminPasswordModify',
+        //   component: () => import('@/components/views/super-admin/passwordModify.vue')
+        // }
       ]
     },
 
@@ -101,22 +115,8 @@ const router = createRouter({
         {
           path: 'defense',
           name: 'DefenseYearManagement',
-          component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
-        },
-        {
-          path: 'signature-upload',
-          name: 'SignatureUpload',
-          component: () => import('@/components/common/SignatureUpload.vue'),
-          meta: {
-            title: '签名上传'
-          }
-        },
-        {
-          path: 'passwordModify',
-          name: 'InstAdminPasswordModify',
-          component: () => import('@/components/common/passwordModify.vue')
+          component: () => import('@/components/views/inst-admin/DefenseYearManagement.vue')
         }
-
       ]
     },
 
@@ -159,19 +159,6 @@ const router = createRouter({
           path: 'reviewStudent',
           name: 'TeacherReviewStudent',
           component: () => import('@/components/views/teacher/ReviewStudent.vue')
-        },
-        {
-          path: 'signature-upload',
-          name: 'SignatureUpload',
-          component: () => import('@/components/common/SignatureUpload.vue'),
-          meta: {
-            title: '签名上传'
-          }
-        },
-        {
-          path: 'passwordModify',
-          name: 'InstAdminPasswordModify',
-          component: () => import('@/components/common/passwordModify.vue')
         }
       ]
     },
@@ -194,7 +181,7 @@ router.beforeEach((to, from, next) => {
   const isStaticResource = to.path.startsWith('/uploads/') ||
       to.path.startsWith('/signatures/') ||
       to.path.startsWith('/static/') ||
-      to.path.startsWith('/assets/')||
+      to.path.startsWith('/assets/') ||
       to.path.startsWith('/api/uploads/')
 
   if (isStaticResource) {
@@ -209,21 +196,21 @@ router.beforeEach((to, from, next) => {
 
     switch (userType) {
       case 'admin':
-        next({ name: 'SuperAdminHome' })
+        next({name: 'SuperAdminHome'})
         break
       case 'instAdmin':
-        next({ name: 'InstAdminHome' })
+        next({name: 'InstAdminHome'})
         break
       case 'defenseLeader':
-        next({ name: 'DefenseLeaderHome' })
+        next({name: 'DefenseLeaderHome'})
         break
       case 'teacher':
-        next({ name: 'TeacherHome' })
+        next({name: 'TeacherHome'})
         break
       default:
         // 如果 userType 未知，清除登录状态重新登录
         localStorage.clear()
-        next({ name: 'login' })
+        next({name: 'login'})
     }
     return
   }
@@ -231,7 +218,7 @@ router.beforeEach((to, from, next) => {
   // 如果是未登录状态访问需要登录的页面
   if (!isAuthenticated && to.name !== 'login') {
     console.log('未登录，跳转到登录页，目标路径:', to.path)
-    next({ name: 'login' })
+    next({name: 'login'})
     return
   }
 
@@ -245,25 +232,25 @@ router.beforeEach((to, from, next) => {
       switch (userType) {
         case 'admin':
           if (to.path !== '/admin') {
-            next({ name: 'SuperAdminHome' })
+            next({name: 'SuperAdminHome'})
             return
           }
           break
         case 'instAdmin':
           if (to.path !== '/inst-admin') {
-            next({ name: 'InstAdminHome' })
+            next({name: 'InstAdminHome'})
             return
           }
           break
         case 'defenseLeader':
           if (to.path !== '/defense-leader') {
-            next({ name: 'DefenseLeaderHome' })
+            next({name: 'DefenseLeaderHome'})
             return
           }
           break
         case 'teacher':
           if (to.path !== '/teacher') {
-            next({ name: 'TeacherHome' })
+            next({name: 'TeacherHome'})
             return
           }
           break
@@ -284,16 +271,16 @@ router.beforeEach((to, from, next) => {
       // 没有权限，跳转到对应角色的首页
       switch (userType) {
         case 'admin':
-          next({ name: 'SuperAdminHome' })
+          next({name: 'SuperAdminHome'})
           break
         case 'instAdmin':
-          next({ name: 'InstAdminHome' })
+          next({name: 'InstAdminHome'})
           break
         case 'defenseLeader':
-          next({ name: 'DefenseLeaderHome' })
+          next({name: 'DefenseLeaderHome'})
           break
         case 'teacher':
-          next({ name: 'TeacherHome' })
+          next({name: 'TeacherHome'})
           break
       }
       return

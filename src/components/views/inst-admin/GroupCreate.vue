@@ -115,7 +115,7 @@ export default defineComponent({
   methods: {
     async loadAvailableYears() {
       try {
-        const response = await request.get('/api/defense-year/list', {
+        const response = await request.get('/defense-year/list', {
           params: { institute_id: this.groupForm.institute_id }
         });
         if (response.code === 200) {
@@ -133,7 +133,7 @@ export default defineComponent({
 
     async loadAvailableTeachers(year: number) {
       try {
-        const response = await request.get('/api/defense-year/available-teachers', {
+        const response = await request.get('/defense-year/available-teachers', {
           params: { year, institute_id: this.groupForm.institute_id }
         });
         if (response.code === 200) {
@@ -147,7 +147,7 @@ export default defineComponent({
     async handleSubmit() {
       this.submitting = true;
       try {
-        const response = await request.post('/api/defense-year/create-group', this.groupForm);
+        const response = await request.post('/defense-year/create-group', this.groupForm);
         if (response.code === 200) {
           ElMessage.success('答辩小组创建成功');
           this.goBack();
