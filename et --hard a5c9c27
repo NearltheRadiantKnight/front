@@ -1,0 +1,25 @@
+[33me5fda28[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: pull: Fast-forward
+[33m50c8791[m HEAD@{1}: pull: Merge made by the 'ort' strategy.
+[33ma5c9c27[m HEAD@{2}: commit: 教师前端
+[33m35f519a[m HEAD@{3}: commit: 教师前端
+[33m81744ac[m HEAD@{4}: pull: Fast-forward
+[33m2538ef2[m HEAD@{5}: reset: moving to origin/main
+[33m2538ef2[m HEAD@{6}: pull: Fast-forward
+[33m8ee8c73[m HEAD@{7}: commit (merge): 签名上传
+[33m3146fdf[m HEAD@{8}: commit: 签名上传
+[33m7cb0145[m HEAD@{9}: commit (merge): merge
+[33m7303d1d[m HEAD@{10}: commit: merge
+[33m8932511[m HEAD@{11}: pull: Fast-forward
+[33mca05a85[m HEAD@{12}: commit: 答辩管理前端
+[33m8180242[m HEAD@{13}: commit: merge
+[33ma61e9ad[m HEAD@{14}: checkout: moving from master to main
+[33m6d63c08[m[33m ([m[1;32mmaster[m[33m)[m HEAD@{15}: commit (merge): merge
+[33m904fad6[m HEAD@{16}: commit: 增加修改密码
+[33me3a756f[m HEAD@{17}: pull: Merge made by the 'ort' strategy.
+[33meefa434[m HEAD@{18}: commit: merge
+[33m67d9a76[m HEAD@{19}: commit: instAdmin补充，路由未设置
+[33m71136a2[m HEAD@{20}: commit: instAdmin补充，路由未设置
+[33mbdb4612[m HEAD@{21}: pull: Merge made by the 'ort' strategy.
+[33m43b38f8[m HEAD@{22}: commit: merge
+[33m5610435[m HEAD@{23}: commit: admin登录
+[33m8b779d6[m HEAD@{24}: clone: from https://gitee.com/heavenfall/manager-front.git

@@ -86,36 +86,36 @@ const router = createRouter({
           component: () => import('@/components/views/inst-admin/index.vue')
         },
         // 学生管理
-            {
-              path: 'students',
-              name: 'StudentManagement',
-              component: () => import('@/components/views/inst-admin/StudentManagement.vue')
-            },
-            // 教师管理
-            {
-              path: 'teachers',
-              name: 'TeacherManagement',
-              component: () => import('@/components/views/inst-admin/TeacherManagement.vue')
-            },
-            // 答辩管理
-             {
-                  path: 'defense',
-                  name: 'DefenseYearManagement',
-                  component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
-                },
-            {
-                    path: 'signature-upload',
-                    name: 'SignatureUpload',
-                    component: () => import('@/components/common/SignatureUpload.vue'),
-                    meta: {
-                      title: '签名上传'
-                    }
-            },
-            {
-                  path: 'passwordModify',
-                  name: 'InstAdminPasswordModify',
-                  component: () => import('@/components/common/passwordModify.vue')
-            }
+        {
+          path: 'students',
+          name: 'StudentManagement',
+          component: () => import('@/components/views/inst-admin/StudentManagement.vue')
+        },
+        // 教师管理
+        {
+          path: 'teachers',
+          name: 'TeacherManagement',
+          component: () => import('@/components/views/inst-admin/TeacherManagement.vue')
+        },
+        // 答辩管理
+        {
+          path: 'defense',
+          name: 'DefenseYearManagement',
+          component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
+        },
+        {
+          path: 'signature-upload',
+          name: 'SignatureUpload',
+          component: () => import('@/components/common/SignatureUpload.vue'),
+          meta: {
+            title: '签名上传'
+          }
+        },
+        {
+          path: 'passwordModify',
+          name: 'InstAdminPasswordModify',
+          component: () => import('@/components/common/passwordModify.vue')
+        }
 
       ]
     },
