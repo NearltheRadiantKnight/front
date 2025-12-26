@@ -111,7 +111,7 @@ export default defineComponent({
 
           // 尝试使用专用统计接口
           try {
-            const statsRes = await request.get('/api/inst-admin/stats/simple', {
+            const statsRes = await request.get('/inst-admin/stats/simple', {
               params: { institute_id: instituteId }
             });
 

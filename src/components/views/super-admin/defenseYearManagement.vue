@@ -23,6 +23,7 @@
         @edit-year="handleEditYear"
         @toggle-status="handleToggleYearStatus"
         @delete="handleDeleteYear"
+        @add-year="handleAddYear"
     />
 
     <!-- 年份表单对话框 -->

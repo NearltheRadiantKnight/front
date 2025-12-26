@@ -22,7 +22,7 @@
           <el-option
               v-for="teacher in teachers"
               :key="teacher.id"
-              :label="`${teacher.real_name} (${teacher.id})`"
+              :label="`${teacher.realName} (${teacher.id})`"
               :value="teacher.id"
           ></el-option>
         </el-select>

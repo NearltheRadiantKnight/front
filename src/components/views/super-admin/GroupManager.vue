@@ -125,7 +125,9 @@ export default {
     },
 
     async fetchTeachers() {
-      request.get("/teachers/all").then(res=>{
+      const userInfo = localStorage.getItem('userInfo');
+      const info = JSON.parse(userInfo);
+      request.get("/teachers/list?institute_id="+info.InstId).then(res=>{
         this.teacherList = res.data;
       });
     },
@@ -147,13 +149,15 @@ export default {
     },
 
     async handleSubmitGroup(formData) {
-      request.post("/groups/update", {...formData});
+      request.post("/groups/update", {...formData}).then(res=>{
+        this.fetchGroups();
+      });
     },
 
     async handleDeleteGroup(group) {
       try {
         request.post("/groups/delete", {...group}).then(res=>{
-
+          this.fetchGroups();
         });
         // 从列表中移除
         const index = this.groups.findIndex(g => g.id === group.id)
