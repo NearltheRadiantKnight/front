@@ -46,6 +46,10 @@
               <i class="el-icon-user"></i>
               <span>答辩组学生</span>
             </el-menu-item>
+            <el-menu-item index="/teacher/groupDebate">
+              <i class="el-icon-user"></i>
+              <span>大组答辩</span>
+            </el-menu-item>
             <el-menu-item index="/teacher/signature-upload">
               <i class="el-icon-picture"></i>
               <span>上传签名</span>
