@@ -12,7 +12,6 @@
         :loading="loading"
         @add-group="showAddGroupDialog"
         @edit-group="handleEditGroup"
-        @manage-students="handleManageStudents"
         @view-students="handleViewStudents"
         @delete-group="handleDeleteGroup"
     />
@@ -24,14 +23,6 @@
         :teachers="teacherList"
         :year="year"
         @submit="handleSubmitGroup"
-    />
-
-    <!-- 学生分配对话框 -->
-    <StudentAssignmentDialog
-        v-model="studentDialogVisible"
-        :group="selectedGroup"
-        :year="year"
-        @assigned="handleStudentAssigned"
     />
 
     <!-- 学生列表对话框 -->
@@ -46,7 +37,6 @@
 <script>
 import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
-import StudentAssignmentDialog from './StudentAssignment.vue'
 import StudentListDialog from './StudentList.vue'
 import request from "@/api/index.ts";
 
@@ -55,7 +45,6 @@ export default {
   components: {
     GroupList,
     GroupFormDialog,
-    StudentAssignmentDialog,
     StudentListDialog
   },
   props: {
@@ -76,10 +65,9 @@ export default {
       teacherList: [],
 
       groupFormVisible: false,
-      studentDialogVisible: false,
       studentListDialogVisible: false,
 
-      // 表单数据
+      // 表单数据''
       currentGroup: {
         id: null,
         year: '',
@@ -118,7 +106,6 @@ export default {
       this.loading = true
 
       request.get("/groups/all?year="+this.year.year).then(res=>{
-        console.log(res.data)
         this.groups = res.data;
       }).finally(this.loading = false);
 
@@ -171,21 +158,9 @@ export default {
       }
     },
 
-    // 学生操作
-    handleManageStudents(group) {
-      this.selectedGroup = group
-      this.studentDialogVisible = true
-    },
-
     handleViewStudents(group) {
       this.selectedGroup = group
       this.studentListDialogVisible = true
-    },
-
-    handleStudentAssigned() {
-      // 刷新答辩组数据
-      this.fetchGroups()
-      this.$message.success('学生分配成功')
     },
 
     handleStudentRemoved() {

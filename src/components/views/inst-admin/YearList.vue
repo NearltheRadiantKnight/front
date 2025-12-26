@@ -33,7 +33,6 @@
                 size="small"
                 type="primary"
                 @click="$emit('manage-groups', row)"
-                :disabled="row.status === 'inactive'"
             >
               <i class="el-icon-s-management"></i> 管理答辩组
             </el-button>
