@@ -122,6 +122,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh } from '@element-plus/icons-vue';
 import request from '@/api';
+import {userApi} from "@/api/user.ts";
 
 // 定义接口
 interface AdminForm {
@@ -185,7 +186,7 @@ export default defineComponent({
       password: [
         { required: true, message: '请输入密码', trigger: 'blur' }
       ],
-      defenseYear: [
+      year: [
         { required: true, message: '请选择答辩年份', trigger: 'change' }
       ]
     };
@@ -263,7 +264,10 @@ export default defineComponent({
         loading.value = true;
 
         // 管理员登录接口
-        request.post('/login', adminForm.value)
+        userApi.login({
+          username: adminForm.value.username,
+          password: adminForm.value.password,
+        })
             .then((res: any) => {
               if (res.code === 200) {
                 handleLoginSuccess(res.data);
@@ -303,7 +307,11 @@ export default defineComponent({
         loading.value = true;
 
         // 教师登录接口
-        request.post('/loginWithYear', teacherForm.value)
+        userApi.loginWithYear({
+          username: teacherForm.value.username,
+          password: teacherForm.value.password,
+          year: teacherForm.value.year
+        })
             .then((res: any) => {
               if (res.code === 200) {
                 handleLoginSuccess(res.data);
@@ -323,8 +331,13 @@ export default defineComponent({
 
     // 登录成功处理
     const handleLoginSuccess = (data: any) => {
+      // 添加调试日志
+      console.log('登录成功数据:', data);
+      console.log('用户类型:', data.userType);
+      
       // 存储登录信息
       localStorage.setItem('token', data.token || `mock-token-${Date.now()}`);
+      
       localStorage.setItem('userType', data.userType);
 
       // 如果是教师登录，存储答辩年份
@@ -348,10 +361,13 @@ export default defineComponent({
       };
 
       const routeName = routeMap[data.userType];
+      console.log('尝试跳转到路由:', routeName, '用户类型:', data.userType);
       if (routeName) {
         router.push({ name: routeName });
       } else {
-        ElMessage.error('未知用户类型');
+        // 添加更详细的错误信息
+        console.error('未找到匹配的路由，normalizedUserType:', data.userType);
+        ElMessage.error(`未知用户类型: ${data.userType}，请检查后端返回数据`);
       }
     };
 
@@ -360,7 +376,7 @@ export default defineComponent({
       // 页面加载时可以选择清空本地存储
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
-      localStorage.removeItem('defenseYear');
+      localStorage.removeItem('year');
       localStorage.removeItem('userInfo');
     });
 

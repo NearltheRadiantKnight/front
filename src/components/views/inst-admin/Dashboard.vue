@@ -11,14 +11,13 @@
         <el-tag type="success">院系管理员</el-tag>
         <span class="welcome">欢迎，{{ adminName }}</span>
 
-        <!-- 添加上传签名照按钮 -->
         <el-button
           type="text"
           @click="goToPhotoUpload"
           class="upload-btn"
-          title="上传签名照"
+          title="上传签名"
         >
-          <i class="el-icon-edit"></i> 上传签名照
+          <i class="el-icon-edit"></i> 上传签名
         </el-button>
 
         <el-button type="text" @click="logout">退出登录</el-button>
@@ -31,7 +30,6 @@
       <el-aside width="280px" class="sidebar">
         <div class="user-info">
           <div class="avatar">
-            <!-- 使用默认头像图标，不显示签名照 -->
             <i class="el-icon-user-solid"></i>
           </div>
           <div class="info">
@@ -44,7 +42,7 @@
               @click="goToPhotoUpload"
               class="photo-upload-link"
             >
-              <i class="el-icon-edit"></i> 管理签名照
+              <i class="el-icon-edit"></i> 签名管理
             </el-button>
           </div>
         </div>
@@ -83,11 +81,17 @@
             <span>答辩管理</span>
           </el-menu-item>
 
-          <!-- 新增：签名照管理 -->
-          <el-menu-item index="/inst-admin/photo-upload">
+          <!-- 上传签名 -->
+          <el-menu-item index="/inst-admin/signature-upload">
             <i class="el-icon-edit"></i>
-            <span>签名照管理</span>
+            <span>上传签名</span>
           </el-menu-item>
+
+        <!-- 修改密码 -->
+        <el-menu-item index="/inst-admin/passwordModify">
+          <i class="el-icon-edit"></i>
+          <span>修改密码</span>
+        </el-menu-item>
         </el-menu>
       </el-aside>
 

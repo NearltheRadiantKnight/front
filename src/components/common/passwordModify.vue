@@ -137,13 +137,11 @@ export default {
           return;
         }
 
-        // 调试：打印请求数据
         const requestData = {
           userId: userId,
           oldPassword: this.form.oldPassword,
           newPassword: this.form.newPassword
         };
-        console.log('请求数据:', requestData);
 
         // 调用修改密码接口
         const response = await userApi.changePassword(requestData);

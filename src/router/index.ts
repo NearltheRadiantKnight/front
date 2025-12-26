@@ -53,13 +53,13 @@ const router = createRouter({
         },
         {
           path: 'defenseYear',
-          name: 'SuperAdmindenfenseYear',
+          name: 'SuperAdminDenfenseYear',
           component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
         },
         {
           path: 'passwordModify',
           name: 'SuperAdminPasswordModify',
-          component: () => import('@/components/views/super-admin/passwordModify.vue')
+          component: () => import('@/components/common/passwordModify.vue')
         },
         {
           path: '/:pathMatch(.*)*',
@@ -104,12 +104,17 @@ const router = createRouter({
                   component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
                 },
             {
-                    path: 'photo-upload',
-                    name: 'ProfilePhotoUpload',
-                    component: () => import('@/components/views/inst-admin/ProfilePhotoUpload.vue'),
+                    path: 'signature-upload',
+                    name: 'SignatureUpload',
+                    component: () => import('@/components/common/SignatureUpload.vue'),
                     meta: {
-                      title: '系主任照片上传'
+                      title: '签名上传'
                     }
+            },
+            {
+                  path: 'passwordModify',
+                  name: 'InstAdminPasswordModify',
+                  component: () => import('@/components/common/passwordModify.vue')
             }
 
       ]
@@ -143,12 +148,30 @@ const router = createRouter({
         {
           path: '',
           name: 'TeacherHome',
-          component: () => import('@/components/views/teacher/index.vue')
+          component: () => import('@/components/views/teacher/StudentList.vue')
         },
         {
-          path: 'index',
-          name: 'TeacherIndex',
-          component: () => import('@/components/views/teacher/index.vue')
+          path: 'studentList',
+          name: 'TeacherStudentList',
+          component: () => import('@/components/views/teacher/StudentList.vue')
+        },
+        {
+          path: 'reviewStudent',
+          name: 'TeacherReviewStudent',
+          component: () => import('@/components/views/teacher/ReviewStudent.vue')
+        },
+        {
+          path: 'signature-upload',
+          name: 'SignatureUpload',
+          component: () => import('@/components/common/SignatureUpload.vue'),
+          meta: {
+            title: '签名上传'
+          }
+        },
+        {
+          path: 'passwordModify',
+          name: 'InstAdminPasswordModify',
+          component: () => import('@/components/common/passwordModify.vue')
         }
       ]
     },
@@ -245,6 +268,14 @@ router.beforeEach((to, from, next) => {
           }
           break
       }
+    }
+
+    // 检查用户是否有访问修改密码页面的权限
+    if (to.path === '/passwordModify') {
+      // 所有已登录用户都可以访问修改密码页面
+      console.log('已登录用户访问修改密码页面，userType:', userType)
+      next()
+      return
     }
 
     let hasPermission = true

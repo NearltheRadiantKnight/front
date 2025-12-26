@@ -211,11 +211,7 @@ export default defineComponent({
         const loadStudents = async () => {
             loading.value = true;
             try {
-                const response = await request.get('/students/list', {
-                    params: {
-                        institute_id: instituteId.value
-                    }
-                });
+                const response = await request.get('/students/list?institute_id='+instituteId.value);
                 if (response.code === 200) {
                     studentList.value = response.data.list || [];
                     console.log(studentList.value)

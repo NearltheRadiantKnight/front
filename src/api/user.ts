@@ -5,12 +5,12 @@ import { get, post, put, patch, del } from './index'
 export const userApi = {
   // 登录
   login: (data: { username: string; password: string }) => {
-    return post('/api/login', data)
+    return post('/login', data)
   },
 
   // 带年份登录
   loginWithYear: (data: { username: string; password: string; year: number }) => {
-    return post('/api/loginWithYear', data)
+    return post('/loginWithYear', data)
   },
 
   // 登出
@@ -20,12 +20,12 @@ export const userApi = {
 
   // 获取答辩年份
   getDefenseYears: () => {
-    return get('/api/defenseYears')
+    return get('/defenseYears')
   },
 
   // 修改密码
   changePassword: (data: { userId: string; oldPassword: string; newPassword: string }) => {
-    return post('/api/changePassword', data)
+    return post('/user/changePassword', data)
   },
 
   // 获取用户信息

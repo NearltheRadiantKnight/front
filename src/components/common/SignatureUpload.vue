@@ -91,7 +91,7 @@
 import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { userApi } from '@/api/user';
+import { userApi } from '@/api/user.ts';
 
 export default defineComponent({
   name: 'SimplePhotoUpload',
