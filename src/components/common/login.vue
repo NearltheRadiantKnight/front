@@ -310,7 +310,7 @@ export default defineComponent({
         userApi.loginWithYear({
           username: teacherForm.value.username,
           password: teacherForm.value.password,
-          year: teacherForm.value.year
+          defenseYear: teacherForm.value.year
         })
             .then((res: any) => {
               if (res.code === 200) {
@@ -334,10 +334,10 @@ export default defineComponent({
       // 添加调试日志
       console.log('登录成功数据:', data);
       console.log('用户类型:', data.userType);
-      
+
       // 存储登录信息
       localStorage.setItem('token', data.token || `mock-token-${Date.now()}`);
-      
+
       localStorage.setItem('userType', data.userType);
 
       // 如果是教师登录，存储答辩年份

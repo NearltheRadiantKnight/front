@@ -343,7 +343,7 @@ export default defineComponent({
     async loadYearList() {
       this.loading = true;
       try {
-        const response = await request.get('/api/defense-year/list', {
+        const response = await request.get('/defense/allyear', {
           params: { institute_id: this.instituteId }
         });
 
@@ -382,7 +382,7 @@ export default defineComponent({
 
         this.submitting = true;
         try {
-          const response = await request.post('/api/defense-year/create', this.yearForm);
+          const response = await request.post('/defense/yearadd', this.yearForm);
 
           if (response.code === 200) {
             ElMessage.success('答辩年份创建成功');
@@ -421,34 +421,6 @@ export default defineComponent({
       this.manageDialogVisible = true;
     },
 
-    // 更新年份状态
-    async handleUpdateYearStatus() {
-      if (!this.selectedYear) return;
-
-      this.updating = true;
-      try {
-        const response = await request.post('/api/defense-year/update-status', null, {
-          params: {
-            year: this.selectedYear.year,
-            institute_id: this.selectedYear.institute_id,
-            status: this.selectedYear.status
-          }
-        });
-
-        if (response.code === 200) {
-          ElMessage.success('状态更新成功');
-          this.loadYearList();
-        } else {
-          ElMessage.error(response.message || '更新失败');
-        }
-      } catch (error) {
-        console.error('更新状态失败:', error);
-        ElMessage.error('更新失败');
-      } finally {
-        this.updating = false;
-      }
-    },
-
     // 在年份下创建小组
     handleCreateGroupInYear(year: any) {
       this.$router.push({
@@ -475,8 +447,10 @@ export default defineComponent({
           }
         );
 
-        const response = await request.delete(`/api/defense-year/delete/${year.year}`, {
-          params: { institute_id: year.institute_id }
+        const response = await request.delete(`/defense/delete`, {
+          params: {
+            year:year.year
+          }
         });
 
         if (response.code === 200) {
