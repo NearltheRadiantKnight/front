@@ -74,7 +74,7 @@
                   <el-input v-model="teacherForm.password" placeholder="请输入密码" type="password"
                             @keyup.enter="handleTeacherLogin"></el-input>
                 </el-form-item>
-                <el-form-item label="答辩年份：" prop="defenseYear">
+                <el-form-item label="答辩年份：" prop="year">
                   <el-select
                       v-model="teacherForm.year"
                       placeholder="请先输入教师编号获取可用年份"
@@ -310,7 +310,7 @@ export default defineComponent({
         userApi.loginWithYear({
           username: teacherForm.value.username,
           password: teacherForm.value.password,
-          defenseYear: teacherForm.value.year
+          year: teacherForm.value.year
         })
             .then((res: any) => {
               if (res.code === 200) {
@@ -342,7 +342,7 @@ export default defineComponent({
 
       // 如果是教师登录，存储答辩年份
       if (loginType.value === 'teacher' && teacherForm.value.year) {
-        localStorage.setItem('defenseYear', teacherForm.value.year.toString());
+        localStorage.setItem('year', teacherForm.value.year.toString());
       }
 
       if (data.userInfo) {

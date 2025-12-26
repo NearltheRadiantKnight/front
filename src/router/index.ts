@@ -14,14 +14,6 @@ const router = createRouter({
       name:'Common',
       children:[
         {
-          path: 'signature-upload',
-          name: 'SignatureUpload',
-          component: () => import('@/components/common/SignatureUpload.vue'),
-          meta: {
-            title: '签名上传'
-          }
-        },
-        {
           path: 'passwordModify',
           name: 'InstAdminPasswordModify',
           component: () => import('@/components/common/passwordModify.vue')
@@ -72,14 +64,14 @@ const router = createRouter({
         },
         {
           path: 'defenseYear',
-          name: 'SuperAdminDenfenseYear',
+          name: 'SuperAdminDefenseYear',
           component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
         },
-        // {
-        //   path: 'passwordModify',
-        //   name: 'SuperAdminPasswordModify',
-        //   component: () => import('@/components/views/super-admin/passwordModify.vue')
-        // }
+        {
+          path: 'passwordModify',
+          name: 'SuperAdminPasswordModify',
+          component: () => import('@/components/common/passwordModify.vue')
+        }
       ]
     },
 
@@ -116,6 +108,16 @@ const router = createRouter({
           path: 'defense',
           name: 'DefenseYearManagement',
           component: () => import('@/components/views/inst-admin/DefenseYearManagement.vue')
+        },
+        {
+          path: 'signature-upload',
+          name: 'InstAdminSignature-upload',
+          component: () => import('@/components/common/SignatureUpload.vue')
+        },
+        {
+          path: 'passwordModify',
+          name: 'InstAdminPasswordModify',
+          component: () => import('@/components/common/passwordModify.vue')
         }
       ]
     },
@@ -159,7 +161,17 @@ const router = createRouter({
           path: 'reviewStudent',
           name: 'TeacherReviewStudent',
           component: () => import('@/components/views/teacher/ReviewStudent.vue')
-        }
+        },
+          {
+            path: 'passwordModify',
+            name: 'TeacherPasswordModify',
+            component: () => import('@/components/common/passwordModify.vue')
+          },
+          {
+            path: 'signature-upload',
+            name: 'TeacherSignature-upload',
+            component: () => import('@/components/common/SignatureUpload.vue')
+          }
       ]
     },
 

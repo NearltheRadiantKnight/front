@@ -65,13 +65,13 @@
           </el-menu-item>
 
           <!-- 上传签名 -->
-          <el-menu-item index="/common/signature-upload">
+          <el-menu-item index="/inst-admin/signature-upload">
             <i class="el-icon-edit"></i>
             <span>上传签名</span>
           </el-menu-item>
 
         <!-- 修改密码 -->
-        <el-menu-item index="/common/passwordModify">
+        <el-menu-item index="/inst-admin/passwordModify">
           <i class="el-icon-edit"></i>
           <span>修改密码</span>
         </el-menu-item>
