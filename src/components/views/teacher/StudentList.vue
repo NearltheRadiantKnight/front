@@ -115,15 +115,6 @@
           </template>
         </el-table-column>
 
-        <!-- 学生状态 -->
-        <el-table-column prop="status" label="状态" width="90">
-          <template #default="scope">
-            <el-tag :type="getStudentStatusTagType(scope.row.status)" size="small">
-              {{ getStudentStatusText(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-
         <!-- 操作列 -->
         <el-table-column label="操作" width="100" fixed="right">
           <template #default="scope">
@@ -324,9 +315,6 @@ export default defineComponent({
         case 'selectReviewer':
           openSelectReviewerDialog(student);
           break;
-        case 'score':
-          openScoreDialog(student);
-          break;
         case 'delete':
           confirmDeleteStudent(student);
           break;
@@ -519,13 +507,11 @@ export default defineComponent({
       saveThesisInfo,
       openSelectReviewerDialog,
       saveReviewer,
-      openScoreDialog,
       truncateText,
       formatDate,
       getTypeTagType,
       getTypeText,
       getStudentStatusTagType,
-      getStudentStatusText
     };
   }
 });
