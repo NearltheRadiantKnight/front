@@ -186,7 +186,7 @@ export default defineComponent({
       password: [
         { required: true, message: '请输入密码', trigger: 'blur' }
       ],
-      year: [
+      defenseYear: [
         { required: true, message: '请选择答辩年份', trigger: 'change' }
       ]
     };

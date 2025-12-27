@@ -22,7 +22,13 @@
     </div>
 
     <el-table :data="filteredGroups" v-loading="loading" style="margin-bottom: 20px;">
-      <el-table-column prop="admin_id" label="组长" width="150"></el-table-column>
+      <el-table-column label="组长" width="150">
+        <template #default="{row}">
+          <span>
+            {{ row.realName }}
+          </span>
+        </template>
+      </el-table-column>
       <el-table-column label="学生数" width="120">
         <template #default="{ row }">
           <span :class="{ 'text-danger': row.student_count > row.max_student_count }">
@@ -59,24 +65,6 @@
         <span class="label">答辩组总数：</span>
         <span class="value">{{ groups.length }}</span>
       </div>
-      <div class="summary-item">
-        <span class="label">已启用：</span>
-        <span class="value">{{ activeGroupsCount }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">总容量：</span>
-        <span class="value">{{ totalCapacity }} 人</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">已分配：</span>
-        <span class="value">{{ totalAssigned }} 人</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">剩余容量：</span>
-        <span class="value" :class="{ 'text-danger': remainingCapacity < 0 }">
-          {{ remainingCapacity }} 人
-        </span>
-      </div>
     </div>
   </div>
 </template>
@@ -94,7 +82,7 @@ export default {
       default: false
     }
   },
-  emits: ['add-group', 'edit-group', 'manage-students', 'view-students', 'toggle-status', 'delete-group'],
+  emits: ['add-group', 'edit-group', 'view-students', 'toggle-status', 'delete-group'],
   data() {
     return {
       searchKeyword: ''
