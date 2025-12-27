@@ -46,7 +46,7 @@
           :default-sort="{prop: 'id', order: 'ascending'}"
       >
         <!-- 学生基本信息 -->
-        <el-table-column prop="id" label="学号" width="100" sortable />
+        <el-table-column prop="stu_id" label="学号" width="100" sortable />
         <el-table-column prop="real_name" label="姓名" width="80" />
 
         <!-- 题目信息 -->
@@ -157,6 +157,7 @@ import { defineComponent, ref, onMounted, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import ScoreDialog from './ScoreDialog.vue';
 import ExportDialog from './ExportDialog.vue';
+import request from "@/api";
 
 interface Student {
   id: string;
@@ -185,11 +186,6 @@ interface DefenseScores {
   design_qa2?: number;
 }
 
-interface DefenseGroup {
-  groupId: string;
-  teacherId: string;
-}
-
 export default defineComponent({
   name: 'ReviewStudent',
   components: {
@@ -199,8 +195,8 @@ export default defineComponent({
 
   setup() {
     const loading = ref(false);
-    const currentTeacherId = ref(''); // 从登录信息获取
-    const currentGroup = ref<DefenseGroup | null>(null);
+    const currentTeacherId = ref('');
+    const groupId = ref('');
     const groupStudents = ref<Student[]>([]);
 
     // 对话框状态
@@ -219,81 +215,15 @@ export default defineComponent({
       return groupStudents.value.filter(student => student.scores?.total > 0).length;
     });
 
-    // 加载答辩小组信息
-    const loadDefenseGroup = async () => {
-      try {
-        // 调用后端API获取当前教师的答辩小组信息
-        // ...
-
-        // 模拟数据
-        currentGroup.value = {
-          groupId: 'G2025001',
-          teacherId: currentTeacherId.value
-        };
-
-        ElMessage.success('已加载答辩小组信息');
-      } catch (error) {
-        ElMessage.error('加载答辩小组信息失败');
-      }
-    };
-
     // 加载小组成员
     const loadGroupStudents = async () => {
       loading.value = true;
-      try {
-        // 调用后端API获取答辩小组成员
-        // ...
+      request.get("/groups/getmember",{params:{
+          group_id: groupId.value
+      }}).then(res=>{
+        groupStudents.value = res.data;
+      }).finally(()=>{loading.value = false});
 
-        // 模拟数据
-        groupStudents.value = [
-          {
-            id: '2023001',
-            real_name: '王小明',
-            title: '基于深度学习的图像识别系统研究',
-            type: 0,
-            advisor_name: '张教授',
-            scores: {
-              total: 85,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              paper_quality: 35,
-              presentation: 25,
-              qa_performance: 25
-            }
-          },
-          {
-            id: '2023002',
-            real_name: '张小红',
-            title: '智能家居控制系统设计',
-            type: 1,
-            advisor_name: '王教授',
-            scores: {
-              total: 92,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              design_quality1: 14,
-              design_quality2: 13,
-              design_quality3: 14,
-              design_presentation: 23,
-              design_qa1: 14,
-              design_qa2: 14
-            }
-          },
-          {
-            id: '2023003',
-            real_name: '李小刚',
-            title: '云计算平台性能优化研究',
-            type: 0,
-            advisor_name: '刘教授',
-          }
-        ];
-
-        ElMessage.success(`已加载 ${groupStudents.value.length} 名学生`);
-      } catch (error) {
-        ElMessage.error('加载学生列表失败');
-      } finally {
-        loading.value = false;
-      }
     };
 
     // 打开评分对话框
@@ -427,18 +357,21 @@ export default defineComponent({
 
     // 初始化
     onMounted(() => {
-      loadDefenseGroup();
+      const userInfo = localStorage.getItem('userInfo');
+      if (userInfo) {
+        const info = JSON.parse(userInfo);
+        groupId.value = info.groupId;
+        currentTeacherId.value = info.id;
+      }
       loadGroupStudents();
     });
 
     return {
       loading,
-      currentGroup,
       groupStudents,
       scoreDialog,
       exportDialog,
       scoredStudentsCount,
-      loadDefenseGroup,
       loadGroupStudents,
       openScoreDialog,
       saveScores,
