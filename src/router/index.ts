@@ -133,17 +133,17 @@ const router = createRouter({
     {
       path: '/defense-leader',
       name: 'DefenseLeaderDashboard',
-      component: () => import('@/components/views/defense-leader/Dashboard.vue'),
+      component: () => import('@/components/views/teacher/Dashboard.vue'),
       children: [
         {
           path: '',
           name: 'DefenseLeaderHome',
-          component: () => import('@/components/views/defense-leader/index.vue')
+          component: () => import('@/components/views/teacher/Dashboard.vue')
         },
         {
-          path: 'index',
-          name: 'DefenseLeaderIndex',
-          component: () => import('@/components/views/defense-leader/index.vue')
+          path: 'groupDefense',
+          name: 'TeacherGroupDefense',
+          component: () => import('@/components/views/defense-leader/GroupDefense.vue')
         }
       ]
     },
@@ -264,8 +264,8 @@ router.beforeEach((to, from, next) => {
           }
           break
         case 'defenseLeader':
-          if (to.path !== '/defense-leader') {
-            next({name: 'DefenseLeaderHome'})
+          if (to.path !== '/teacher') {
+            next({name: 'TeacherHome'})
             return
           }
           break

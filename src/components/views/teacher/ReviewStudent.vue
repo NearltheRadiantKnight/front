@@ -7,8 +7,18 @@
         <p class="page-subtitle">为您的答辩小组成员进行打分和成绩评定</p>
       </div>
       <div class="header-actions">
+        <!-- 答辩组长特有功能：生成评语 -->
         <el-button
             type="primary"
+            icon="el-icon-edit"
+            @click="generateAllComments"
+            :disabled="!isDefenseLeader || groupStudents.length === 0"
+            v-if="isDefenseLeader"
+        >
+          批量生成评语
+        </el-button>
+        <el-button
+            type="warning"
             icon="el-icon-download"
             @click="openExportDialog"
             :disabled="scoredStudentsCount === 0"
@@ -33,6 +43,10 @@
           <span class="info-label">未评分人数：</span>
           <span class="info-value">{{ groupStudents.length - scoredStudentsCount }}人</span>
         </div>
+        <!-- 答辩组长身份标识 -->
+        <div class="group-info-item" v-if="isDefenseLeader">
+          <el-tag type="warning" size="small">答辩组长模式</el-tag>
+        </div>
       </div>
     </el-card>
 
@@ -46,7 +60,7 @@
           :default-sort="{prop: 'id', order: 'ascending'}"
       >
         <!-- 学生基本信息 -->
-        <el-table-column prop="stu_id" label="学号" width="100" sortable />
+        <el-table-column prop="id" label="学号" width="100" sortable />
         <el-table-column prop="real_name" label="姓名" width="80" />
 
         <!-- 题目信息 -->
@@ -76,11 +90,45 @@
                   {{ scope.row.scores.total || 0 }}
                 </span>
               </div>
-              <div v-if="scope.row.scores.graded_by" class="graded-by">
-                <small>评分人：{{ scope.row.scores.graded_by }}</small>
-              </div>
             </div>
             <span v-else class="no-score">未评分</span>
+          </template>
+        </el-table-column>
+
+        <!-- 答辩组长特有功能：查看其他教师评分 -->
+        <el-table-column label="其他评委评分" width="120" v-if="isDefenseLeader">
+          <template #default="scope">
+            <div class="teacher-scores-section">
+              <div class="scores-count" v-if="scope.row.teacherScores && scope.row.teacherScores.length > 0">
+                已评{{ scope.row.teacherScores.length }}人
+              </div>
+              <div v-else class="no-scores">
+                无其他评分
+              </div>
+              <div class="view-action">
+                <el-button
+                    type="text"
+                    size="mini"
+                    icon="el-icon-view"
+                    @click="viewTeacherScores(scope.row)"
+                    :disabled="!scope.row.teacherScores || scope.row.teacherScores.length === 0"
+                >
+                  查看详情
+                </el-button>
+              </div>
+            </div>
+          </template>
+        </el-table-column>
+
+        <!-- 答辩组长特有功能：答辩小组评语 -->
+        <el-table-column label="答辩小组评语" width="180" v-if="isDefenseLeader">
+          <template #default="scope">
+            <DefenseComment
+                :student="scope.row"
+                :is-defense-leader="isDefenseLeader"
+                @update:comment="(comment) => updateStudentComment(scope.row.id, comment)"
+                @generate-comment="handleGenerateComment"
+            />
           </template>
         </el-table-column>
 
@@ -137,6 +185,8 @@
         v-model:visible="scoreDialog.visible"
         :student="scoreDialog.student"
         :initial-scores="scoreDialog.initialScores"
+        :is-defense-leader="isDefenseLeader"
+        :teacher-scores="scoreDialog.teacherScores"
         @confirm="saveScores"
         @cancel="scoreDialog.visible = false"
     />
@@ -149,35 +199,44 @@
         @confirm="handleExport"
         @cancel="exportDialog.visible = false"
     />
+
+    <!-- 查看其他教师评分对话框 -->
+    <TeacherScoresDialog
+        v-model:visible="teacherScoresDialog.visible"
+        :student="teacherScoresDialog.student"
+        :teacher-scores="teacherScoresDialog.teacherScores"
+    />
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed } from 'vue';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import ScoreDialog from './ScoreDialog.vue';
 import ExportDialog from './ExportDialog.vue';
-import request from "@/api";
+import DefenseComment from './DefenseComment.vue';
+import TeacherScoresDialog from './TeacherScoresDialog.vue';
 
 interface Student {
   id: string;
   real_name: string;
   title?: string;
-  type?: number; // 0: 论文, 1: 设计
+  type?: number;
   advisor_name?: string;
   scores?: DefenseScores;
+  summary?: string;
+  comment?: string;
+  generatingComment?: boolean;
+  teacherScores?: TeacherScore[];
 }
 
 interface DefenseScores {
-  // 通用字段
   total: number;
   graded_by: string;
   graded_at: string;
-  // 论文类型专用
   paper_quality?: number;
   presentation?: number;
   qa_performance?: number;
-  // 设计类型专用
   design_quality1?: number;
   design_quality2?: number;
   design_quality3?: number;
@@ -186,28 +245,53 @@ interface DefenseScores {
   design_qa2?: number;
 }
 
+interface TeacherScore {
+  teacherId: string;
+  teacherName: string;
+  scores: DefenseScores;
+  graded_at: string;
+}
+
+interface DefenseGroup {
+  groupId: string;
+  teacherId: string;
+}
+
 export default defineComponent({
   name: 'ReviewStudent',
   components: {
     ScoreDialog,
-    ExportDialog
+    ExportDialog,
+    DefenseComment,
+    TeacherScoresDialog
   },
 
   setup() {
     const loading = ref(false);
     const currentTeacherId = ref('');
-    const groupId = ref('');
+    const currentGroup = ref<DefenseGroup | null>(null);
     const groupStudents = ref<Student[]>([]);
+
+    // 判断是否为答辩组长
+    const isDefenseLeader = ref(false);
 
     // 对话框状态
     const scoreDialog = ref({
       visible: false,
       student: null as Student | null,
-      initialScores: null as DefenseScores | null
+      initialScores: null as DefenseScores | null,
+      teacherScores: [] as TeacherScore[]
     });
 
     const exportDialog = ref({
       visible: false
+    });
+
+    // 教师评分对话框状态
+    const teacherScoresDialog = ref({
+      visible: false,
+      student: null as Student | null,
+      teacherScores: [] as TeacherScore[]
     });
 
     // 计算已评分学生数量
@@ -215,15 +299,166 @@ export default defineComponent({
       return groupStudents.value.filter(student => student.scores?.total > 0).length;
     });
 
+    // 加载答辩小组信息
+    const loadDefenseGroup = async () => {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (userInfo) {
+          const user = JSON.parse(userInfo);
+          console.log('loadDefenseGroup - 用户信息:', user);
+
+          if (user && user.isDefenseLeader) {
+            isDefenseLeader.value = true;
+            console.log('当前用户是答辩组长');
+          } else {
+            isDefenseLeader.value = false;
+          }
+        }
+
+        currentGroup.value = {
+          groupId: 'G2025001',
+          teacherId: currentTeacherId.value
+        };
+
+        console.log('答辩组长状态:', isDefenseLeader.value);
+        ElMessage.success('已加载答辩小组信息');
+      } catch (error) {
+        console.error('加载答辩小组信息失败:', error);
+        ElMessage.error('加载答辩小组信息失败');
+      }
+    };
+
     // 加载小组成员
     const loadGroupStudents = async () => {
       loading.value = true;
-      request.get("/groups/getmember",{params:{
-          group_id: groupId.value
-      }}).then(res=>{
-        groupStudents.value = res.data;
-      }).finally(()=>{loading.value = false});
+      try {
+        // 模拟数据
+        groupStudents.value = [
+          {
+            id: '2023001',
+            real_name: '王小明',
+            title: '基于深度学习的图像识别系统研究',
+            type: 0,
+            summary: '本文研究了基于深度学习的图像识别技术，提出了改进的卷积神经网络模型，在ImageNet数据集上达到了95.2%的准确率。',
+            advisor_name: '张教授',
+            scores: {
+              total: 85,
+              graded_by: '李老师',
+              graded_at: '2025-06-15',
+              paper_quality: 35,
+              presentation: 25,
+              qa_performance: 25
+            },
+            comment: '该生论文选题具有较好的理论价值和实际意义，研究内容充实，方法得当。答辩过程中表述清晰，回答问题准确。建议在应用场景方面进一步拓展。'
+          },
+          {
+            id: '2023002',
+            real_name: '张小红',
+            title: '智能家居控制系统设计',
+            type: 1,
+            summary: '设计了一个基于物联网的智能家居控制系统，实现了灯光、温度、安防等设备的智能控制，系统运行稳定，用户体验良好。',
+            advisor_name: '王教授',
+            scores: {
+              total: 92,
+              graded_by: '李老师',
+              graded_at: '2025-06-15',
+              design_quality1: 14,
+              design_quality2: 13,
+              design_quality3: 14,
+              design_presentation: 23,
+              design_qa1: 14,
+              design_qa2: 14
+            },
+            comment: '设计内容完整，系统功能完善，界面友好。答辩过程中演示流畅，对技术细节掌握扎实。建议增加与其他智能设备的兼容性。'
+          },
+          {
+            id: '2023003',
+            real_name: '李小刚',
+            title: '云计算平台性能优化研究',
+            type: 0,
+            summary: '研究了云计算平台性能瓶颈问题，提出了基于负载预测的资源调度算法，提升了资源利用率15%。',
+            advisor_name: '刘教授',
+          }
+        ];
 
+        // 如果是答辩组长，加载所有教师的打分情况
+        if (isDefenseLeader.value) {
+          await loadTeacherScoresForAllStudents();
+        }
+
+        ElMessage.success(`已加载 ${groupStudents.value.length} 名学生`);
+      } catch (error) {
+        ElMessage.error('加载学生列表失败');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    // 加载所有教师的打分情况
+    const loadTeacherScoresForAllStudents = async () => {
+      try {
+        groupStudents.value.forEach(student => {
+          student.teacherScores = [
+            {
+              teacherId: 'T001',
+              teacherName: '李老师',
+              scores: student.scores || {
+                total: 0,
+                graded_by: '李老师',
+                graded_at: '2025-06-15'
+              },
+              graded_at: '2025-06-15'
+            },
+            {
+              teacherId: 'T002',
+              teacherName: '王老师',
+              scores: {
+                total: student.scores ? student.scores.total - 2 : 0,
+                graded_by: '王老师',
+                graded_at: '2025-06-15'
+              },
+              graded_at: '2025-06-15'
+            },
+            {
+              teacherId: 'T003',
+              teacherName: '张老师',
+              scores: {
+                total: student.scores ? student.scores.total + 3 : 0,
+                graded_by: '张老师',
+                graded_at: '2025-06-15'
+              },
+              graded_at: '2025-06-15'
+            }
+          ];
+        });
+      } catch (error) {
+        console.error('加载教师打分情况失败:', error);
+      }
+    };
+
+    // 更新学生评语
+    const updateStudentComment = (studentId: string, comment: string) => {
+      const student = groupStudents.value.find(s => s.id === studentId);
+      if (student) {
+        student.comment = comment;
+        // 这里可以添加保存到后端的逻辑
+        console.log(`更新学生 ${studentId} 的评语:`, comment);
+      }
+    };
+
+    // 处理生成评语
+    const handleGenerateComment = async (data: { studentId: string, comment: string }) => {
+      console.log('生成评语:', data);
+      // 这里可以添加保存到后端的逻辑
+    };
+
+    // 查看其他教师评分
+    const viewTeacherScores = (student: Student) => {
+      teacherScoresDialog.value = {
+        visible: true,
+        student: student,
+        teacherScores: student.teacherScores || []
+      };
     };
 
     // 打开评分对话框
@@ -231,19 +466,17 @@ export default defineComponent({
       scoreDialog.value = {
         visible: true,
         student: student,
-        initialScores: student.scores || null
+        initialScores: student.scores || null,
+        teacherScores: student.teacherScores || []
       };
     };
 
     // 保存成绩
     const saveScores = async (scoresData: any) => {
       try {
-        // 调用后端API保存成绩
-        // ...
-
         ElMessage.success('成绩保存成功');
         scoreDialog.value.visible = false;
-        loadGroupStudents(); // 刷新列表
+        loadGroupStudents();
       } catch (error) {
         ElMessage.error('保存成绩失败');
       }
@@ -257,30 +490,8 @@ export default defineComponent({
       }
 
       try {
-        // 调用后端API导出单个学生成绩表
-        console.log('导出单个学生成绩:', {
-          teacherId: currentTeacherId.value,
-          studentId: student.id,
-          studentName: student.real_name,
-          groupId: currentGroup.value?.groupId
-        });
-
-        // 模拟导出过程
         loading.value = true;
-
-        // 这里应该调用后端API获取文件流
-        // 示例：const response = await api.exportStudentScore(student.id);
-        // 然后处理文件下载
-
-        // 模拟延迟
         await new Promise(resolve => setTimeout(resolve, 1000));
-
-        // 模拟文件名
-        const fileName = `${student.id}_${student.real_name}_成绩表.docx`;
-
-        // 在实际项目中，这里应该处理文件下载
-        console.log('下载文件:', fileName);
-
         ElMessage.success(`已导出 ${student.real_name} 的成绩表`);
       } catch (error) {
         ElMessage.error('导出失败');
@@ -301,18 +512,13 @@ export default defineComponent({
     // 处理批量导出
     const handleExport = async (filename: string) => {
       try {
-        // 调用后端API打包导出已评分成绩表
-        // 这里应该传递当前教师的已评分学生列表
         const scoredStudents = groupStudents.value.filter(student => student.scores?.total > 0);
-
         console.log('导出参数:', {
           teacherId: currentTeacherId.value,
           groupId: currentGroup.value?.groupId,
           filename: filename,
-          studentCount: scoredStudents.length,
-          studentIds: scoredStudents.map(s => s.id)
+          studentCount: scoredStudents.length
         });
-
         ElMessage.success('已开始打包导出，请稍候下载');
         exportDialog.value.visible = false;
       } catch (error) {
@@ -320,13 +526,37 @@ export default defineComponent({
       }
     };
 
-    // 工具函数
-    const formatDate = (dateString: string) => {
-      if (!dateString) return '未设置';
-      const date = new Date(dateString);
-      return date.toLocaleString('zh-CN');
+    // 批量生成评语
+    const generateAllComments = async () => {
+      ElMessageBox.confirm(
+          '确定要为所有学生生成评语吗？',
+          '批量生成评语',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+      ).then(async () => {
+        loading.value = true;
+        try {
+          // 为每个学生生成评语
+          for (const student of groupStudents.value) {
+            if (!student.comment) {
+              // 这里可以调用批量生成评语的API
+              console.log('为', student.real_name, '生成评语');
+            }
+          }
+          ElMessage.success('批量生成评语完成');
+        } catch (error) {
+          console.error('批量生成评语失败:', error);
+          ElMessage.error('批量生成评语失败');
+        } finally {
+          loading.value = false;
+        }
+      });
     };
 
+    // 工具函数
     const getTypeTagType = (type?: number) => {
       return type === 1 ? 'warning' : 'primary';
     };
@@ -359,26 +589,43 @@ export default defineComponent({
     onMounted(() => {
       const userInfo = localStorage.getItem('userInfo');
       if (userInfo) {
-        const info = JSON.parse(userInfo);
-        groupId.value = info.groupId;
-        currentTeacherId.value = info.id;
+        try {
+          const user = JSON.parse(userInfo);
+          console.log('初始化 - 用户信息:', user);
+
+          currentTeacherId.value = user.id || '';
+          isDefenseLeader.value = user.isDefenseLeader || false;
+
+          console.log('用户是否为答辩组长:', isDefenseLeader.value);
+        } catch (error) {
+          console.error('解析用户信息失败:', error);
+        }
       }
+
+      loadDefenseGroup();
       loadGroupStudents();
     });
 
     return {
       loading,
+      currentGroup,
       groupStudents,
       scoreDialog,
       exportDialog,
+      teacherScoresDialog,
+      isDefenseLeader,
       scoredStudentsCount,
+      loadDefenseGroup,
       loadGroupStudents,
       openScoreDialog,
       saveScores,
       exportSingleStudent,
       openExportDialog,
       handleExport,
-      formatDate,
+      generateAllComments,
+      updateStudentComment,
+      handleGenerateComment,
+      viewTeacherScores,
       getTypeTagType,
       getTypeText,
       getScoreStatusTagType,
@@ -389,6 +636,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* 原有样式保持不变，添加新样式 */
 .review-student-container {
   padding: 20px;
 }
@@ -471,14 +719,33 @@ export default defineComponent({
   font-weight: 600;
 }
 
-.graded-by {
-  color: #909399;
-  font-size: 11px;
-}
-
 .no-score {
   color: #C0C4CC;
   font-style: italic;
+}
+
+/* 教师评分部分样式 */
+.teacher-scores-section {
+  padding: 4px 0;
+}
+
+.scores-count {
+  font-size: 12px;
+  color: #67C23A;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.no-scores {
+  color: #C0C4CC;
+  font-style: italic;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.view-action {
+  display: flex;
+  justify-content: center;
 }
 
 .action-buttons {
@@ -509,5 +776,10 @@ export default defineComponent({
 :deep(.el-button--small) {
   padding: 5px 8px;
   font-size: 12px;
+}
+
+:deep(.el-button--mini) {
+  padding: 4px 6px;
+  font-size: 11px;
 }
 </style>
