@@ -62,14 +62,10 @@
             <span>答辩年份管理</span>
           </el-menu-item>
 
-          <el-menu-item index="/template">
+          <!-- 修改：只保留一个菜单项，包含模板管理和日期设置 -->
+          <el-menu-item index="/admin/template">
             <i class="el-icon-document"></i>
-            <span>文档模板管理</span>
-          </el-menu-item>
-
-          <el-menu-item index="/date">
-            <i class="el-icon-time"></i>
-            <span>日期设置</span>
+            <span>模板与日期设置</span>
           </el-menu-item>
 
           <el-menu-item index="/ai">

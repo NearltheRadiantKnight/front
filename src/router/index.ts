@@ -67,6 +67,13 @@ const router = createRouter({
           name: 'SuperAdminDefenseYear',
           component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
         },
+        // 新增：模板管理页面（包含日期设置）
+        {
+          path: 'template',
+          name: 'SuperAdminTemplate',
+          component: () => import('@/components/views/super-admin/TemplateManagement.vue')
+        },
+        // 删除单独的日期设置路由，合并到模板管理页面
         {
           path: 'passwordModify',
           name: 'SuperAdminPasswordModify',
@@ -227,6 +234,8 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+
+
   // 如果是未登录状态访问需要登录的页面
   if (!isAuthenticated && to.name !== 'login') {
     console.log('未登录，跳转到登录页，目标路径:', to.path)
@@ -275,6 +284,25 @@ router.beforeEach((to, from, next) => {
       console.log('已登录用户访问修改密码页面，userType:', userType)
       next()
       return
+    }
+
+    // 检查用户是否有访问模板管理页面的权限
+    if (to.path === '/admin/template') {
+      if (userType !== 'admin') {
+        console.log('非超级管理员尝试访问模板管理，跳转到首页')
+        switch (userType) {
+          case 'instAdmin':
+            next({ name: 'InstAdminHome' })
+            break
+          case 'defenseLeader':
+            next({ name: 'DefenseLeaderHome' })
+            break
+          case 'teacher':
+            next({ name: 'TeacherHome' })
+            break
+        }
+        return
+      }
     }
 
     let hasPermission = true
