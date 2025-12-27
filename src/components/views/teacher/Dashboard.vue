@@ -46,7 +46,11 @@
               <i class="el-icon-user"></i>
               <span>答辩组学生</span>
             </el-menu-item>
-            <el-menu-item index="/teacher/groupDebate">
+            <!-- 只有答辩组长显示大组答辩菜单 -->
+            <el-menu-item
+                v-if="teacherInfo.isDefenseLeader"
+                index="/defense-leader/groupDefense"
+            >
               <i class="el-icon-user"></i>
               <span>大组答辩</span>
             </el-menu-item>
@@ -79,7 +83,9 @@ export default defineComponent({
     const teacherInfo = ref({
       name: '李老师',
       department: '计算机科学与技术学院',
-      teacherId: 'T1001'
+      teacherId: 'T1001',
+      groupId: null as string | null,
+      isDefenseLeader: true
     });
 
     const loginTime = ref('');
@@ -87,9 +93,33 @@ export default defineComponent({
     onMounted(() => {
       console.log('教师Dashboard已加载');
       loginTime.value = new Date().toLocaleString();
-      // 从API加载教师信息
-      // loadTeacherInfo();
+      // 从API或localStorage加载教师信息
+      loadTeacherInfo();
     });
+
+    // 加载教师信息
+    const loadTeacherInfo = () => {
+      try {
+        // 从localStorage获取登录时保存的用户信息
+        const userStr = localStorage.getItem('userInfo');
+        if (userStr) {
+          const userData = JSON.parse(userStr);
+          if (userData.userInfo) {
+            const userInfo = userData.userInfo;
+            // 更新teacherInfo，保留原有结构
+            teacherInfo.value.name = userInfo.realName || teacherInfo.value.name;
+            teacherInfo.value.department = userInfo.instituteName || teacherInfo.value.department;
+            teacherInfo.value.teacherId = userInfo.id || teacherInfo.value.teacherId;
+            teacherInfo.value.groupId = userInfo.groupId || null;
+            teacherInfo.value.isDefenseLeader = userInfo.isDefenseLeader || false;
+
+            console.log('教师信息加载完成，isDefenseLeader:', teacherInfo.value.isDefenseLeader);
+          }
+        }
+      } catch (error) {
+        console.error('加载教师信息失败:', error);
+      }
+    };
 
     const logout = () => {
       ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -112,6 +142,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
+/* 原有样式保持不变 */
 .teacher-dashboard {
   height: 100vh;
   background-color: #f0f2f5;

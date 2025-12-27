@@ -334,11 +334,20 @@ export default defineComponent({
       // 添加调试日志
       console.log('登录成功数据:', data);
       console.log('用户类型:', data.userType);
+      console.log('用户信息:', data.userInfo); // 查看用户信息详情
 
       // 存储登录信息
       localStorage.setItem('token', data.token || `mock-token-${Date.now()}`);
-
       localStorage.setItem('userType', data.userType);
+
+      // 如果是答辩组长，存储组号
+      if (data.userType === 'defenseLeader' && data.userInfo && data.userInfo.groupId) {
+        localStorage.setItem('groupId', data.userInfo.groupId.toString());
+        console.log('答辩组长组号:', data.userInfo.groupId, '类型:', typeof data.userInfo.groupId);
+      } else {
+        // 普通教师，没有组号
+        localStorage.removeItem('groupId');
+      }
 
       // 如果是教师登录，存储答辩年份
       if (loginType.value === 'teacher' && teacherForm.value.year) {
@@ -346,11 +355,15 @@ export default defineComponent({
       }
 
       if (data.userInfo) {
+        // 显示组号信息（如果存在）
+        if (data.userInfo.groupId) {
+          ElMessage.success(`登录成功！您的组号为: ${data.userInfo.groupId}`);
+        } else {
+          ElMessage.success('登录成功！');
+        }
+
         localStorage.setItem('userInfo', JSON.stringify(data.userInfo));
       }
-
-      // 显示登录成功消息
-      ElMessage.success('登录成功');
 
       // 跳转到对应页面
       const routeMap: Record<string, string> = {
@@ -361,12 +374,11 @@ export default defineComponent({
       };
 
       const routeName = routeMap[data.userType];
-      console.log('尝试跳转到路由:', routeName, '用户类型:', data.userType);
+      console.log('尝试跳转到路由:', routeName, '用户类型:', data.userType, '组号:', data.userInfo?.groupId);
       if (routeName) {
         router.push({ name: routeName });
       } else {
-        // 添加更详细的错误信息
-        console.error('未找到匹配的路由，normalizedUserType:', data.userType);
+        console.error('未找到匹配的路由，UserType:', data.userType);
         ElMessage.error(`未知用户类型: ${data.userType}，请检查后端返回数据`);
       }
     };
