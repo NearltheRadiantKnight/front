@@ -26,14 +26,6 @@
         @submit="handleSubmitGroup"
     />
 
-    <!-- 学生分配对话框 -->
-    <StudentAssignmentDialog
-        v-model="studentDialogVisible"
-        :group="selectedGroup"
-        :year="year"
-        @assigned="handleStudentAssigned"
-    />
-
     <!-- 学生列表对话框 -->
     <StudentListDialog
         v-model="studentListDialogVisible"
@@ -46,7 +38,6 @@
 <script>
 import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
-import StudentAssignmentDialog from './StudentAssignment.vue'
 import StudentListDialog from './StudentList.vue'
 import request from "@/api/index.ts";
 

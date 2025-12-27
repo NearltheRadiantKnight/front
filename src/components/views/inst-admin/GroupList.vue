@@ -47,6 +47,13 @@
           >
             查看学生
           </el-button>
+          <el-button
+              size="small"
+              type="primary"
+              @click="$emit('assign-student', row)"
+          >
+            分配学生
+          </el-button>
           <el-popconfirm
               title="确定要删除这个答辩组吗？"
               @confirm="$emit('delete-group', row)"
@@ -82,7 +89,7 @@ export default {
       default: false
     }
   },
-  emits: ['add-group', 'edit-group', 'view-students', 'toggle-status', 'delete-group'],
+  emits: ['add-group', 'edit-group', 'view-students','assign-student', 'delete-group'],
   data() {
     return {
       searchKeyword: ''
