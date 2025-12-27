@@ -133,7 +133,7 @@ interface AdminForm {
 interface TeacherForm {
   username: string;
   password: string;
-  defenseYear: number | null;
+  year: number | null;
 }
 
 export default defineComponent({
@@ -159,7 +159,7 @@ export default defineComponent({
     const teacherForm = ref<TeacherForm>({
       username: '',
       password: '',
-      defenseYear: null
+      year: null
     });
 
     // 加载状态
@@ -186,7 +186,7 @@ export default defineComponent({
       password: [
         { required: true, message: '请输入密码', trigger: 'blur' }
       ],
-      defenseYear: [
+      year: [
         { required: true, message: '请选择答辩年份', trigger: 'change' }
       ]
     };
@@ -217,7 +217,7 @@ export default defineComponent({
           // 降序排列年份
           yearOptions.value = response.data.sort((a: number, b: number) => b - a);
           // 默认选中最新年份
-          teacherForm.value.defenseYear = yearOptions.value[0];
+          teacherForm.value.year = yearOptions.value[0];
 
           if (yearOptions.value.length === 1) {
             ElMessage.success(`获取到1个可用年份：${yearOptions.value[0]}年`);
@@ -310,7 +310,7 @@ export default defineComponent({
         userApi.loginWithYear({
           username: teacherForm.value.username,
           password: teacherForm.value.password,
-          defenseYear: teacherForm.value.year
+          year: teacherForm.value.year
         })
             .then((res: any) => {
               if (res.code === 200) {
