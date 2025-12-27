@@ -31,6 +31,7 @@ export default {
   mounted(): any {
     this.getInstituteCount();
     this.getTeacherCount();
+    this.getAdminCount();
   }
 }
 
@@ -44,7 +45,7 @@ export default {
     </div>
 
     <el-row :gutter="20" class="stats-row">
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card class="stat-card">
           <div class="stat-icon" style="background: #409EFF;">
             <i class="el-icon-office-building"></i>
@@ -55,7 +56,7 @@ export default {
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card class="stat-card">
           <div class="stat-icon" style="background: #67C23A;">
             <i class="el-icon-user"></i>
@@ -66,7 +67,7 @@ export default {
           </div>
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card class="stat-card">
           <div class="stat-icon" style="background: #E6A23C;">
             <i class="el-icon-s-custom"></i>
@@ -74,17 +75,6 @@ export default {
           <div class="stat-content">
             <h3>{{ teacherCount }}</h3>
             <p>教师总数</p>
-          </div>
-        </el-card>
-      </el-col>
-      <el-col :span="6">
-        <el-card class="stat-card">
-          <div class="stat-icon" style="background: #F56C6C;">
-            <i class="el-icon-medal"></i>
-          </div>
-          <div class="stat-content">
-            <h3>{{ leaderCount }}</h3>
-            <p>答辩组长</p>
           </div>
         </el-card>
       </el-col>
@@ -114,22 +104,6 @@ export default {
         </el-card>
       </el-col>
     </el-row>
-
-    <!-- 待办事项 -->
-    <el-card class="todo-card">
-      <template #header>
-        <span class="todo-header"><i class="el-icon-alarm-clock"></i> 待处理事项</span>
-      </template>
-      <el-table :data="todos" style="width: 100%">
-        <el-table-column prop="content" label="事项内容" />
-        <el-table-column prop="time" label="创建时间" width="180" />
-        <el-table-column label="操作" width="120">
-          <template #default="scope">
-            <el-button type="text" size="small" @click="handleTodo(scope.row)">处理</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
   </div>
 </template>
 

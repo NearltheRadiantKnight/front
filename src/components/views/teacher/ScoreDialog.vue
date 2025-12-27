@@ -11,11 +11,11 @@
       <div class="info-row">
         <div class="info-item">
           <span class="info-label">学号：</span>
-          <span class="info-value">{{ student?.id }}</span>
+          <span class="info-value">{{ student?.stu_id }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">姓名：</span>
-          <span class="info-value">{{ student?.real_name }}</span>
+          <span class="info-value">{{ student?.realName }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">题目：</span>
@@ -467,7 +467,7 @@ export default defineComponent({
 
     // 对话框标题
     const dialogTitle = computed(() => {
-      return `为 ${props.student?.real_name} (${props.student?.id}) 评分`;
+      return `为 ${props.student?.realName} (${props.student?.stu_id}) 评分`;
     });
 
     // 初始化数据

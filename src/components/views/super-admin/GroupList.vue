@@ -59,24 +59,6 @@
         <span class="label">答辩组总数：</span>
         <span class="value">{{ groups.length }}</span>
       </div>
-      <div class="summary-item">
-        <span class="label">已启用：</span>
-        <span class="value">{{ activeGroupsCount }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">总容量：</span>
-        <span class="value">{{ totalCapacity }} 人</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">已分配：</span>
-        <span class="value">{{ totalAssigned }} 人</span>
-      </div>
-      <div class="summary-item">
-        <span class="label">剩余容量：</span>
-        <span class="value" :class="{ 'text-danger': remainingCapacity < 0 }">
-          {{ remainingCapacity }} 人
-        </span>
-      </div>
     </div>
   </div>
 </template>
@@ -94,7 +76,7 @@ export default {
       default: false
     }
   },
-  emits: ['add-group', 'edit-group', 'manage-students', 'view-students', 'toggle-status', 'delete-group'],
+  emits: ['add-group', 'edit-group', 'manage-students', 'view-students','assign-student', 'toggle-status', 'delete-group'],
   data() {
     return {
       searchKeyword: ''

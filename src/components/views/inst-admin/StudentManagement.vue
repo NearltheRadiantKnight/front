@@ -37,13 +37,7 @@
                 <el-table-column label="操作" width="180" fixed="right">
                     <template #default="scope">
                         <el-button type="text" size="small" @click="handleEdit(scope.row)">编辑</el-button>
-                        <el-button
-                            type="text"
-                            size="small"
-                            @click="handleAssignGroup(scope.row)"
-                        >
-                            分配小组
-                        </el-button>
+
                         <el-button
                             type="text"
                             size="small"
@@ -101,52 +95,6 @@
             </template>
         </el-dialog>
 
-        <!-- 分配小组对话框 -->
-        <el-dialog
-            v-model="assignDialogVisible"
-            title="分配答辩小组"
-            width="500px"
-        >
-            <el-form label-width="100px">
-                <el-form-item label="学生信息">
-                    <div>{{ selectedStudent.name }}（{{ selectedStudent.studentId }}）</div>
-                </el-form-item>
-                <el-form-item label="选择年份">
-                    <el-select
-                        v-model="selectedYear"
-                        placeholder="请选择年份"
-                        @change="handleYearChange"
-                        style="width: 100%"
-                    >
-                        <el-option
-                            v-for="year in yearOptions"
-                            :key="year.year"
-                            :label="`${year.year}年`"
-                            :value="year.year"
-                        />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="选择小组">
-                    <el-select
-                        v-model="selectedGroupId"
-                        placeholder="请选择小组"
-                        :disabled="!selectedYear"
-                        style="width: 100%"
-                    >
-                        <el-option
-                            v-for="group in groupOptions"
-                            :key="group.id"
-                            :label="group.realName"
-                            :value="group.id"
-                        />
-                    </el-select>
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="assignDialogVisible = false">取消</el-button>
-                <el-button type="primary" @click="handleAssignSubmit">分配</el-button>
-            </template>
-        </el-dialog>
     </div>
 </template>
 
@@ -305,15 +253,6 @@ export default defineComponent({
       }
     };
 
-    // 分配小组
-    const handleAssignGroup = (row: any) => {
-      selectedStudent.value = row;
-      selectedYear.value = null;
-      selectedGroupId.value = null;
-      loadYearOptions();
-      assignDialogVisible.value = true;
-    };
-
     const loadYearOptions = async () => {
       try {
         const response = await request.get('/defense/allyear');
@@ -430,7 +369,6 @@ export default defineComponent({
       handleAdd,
       handleEdit,
       handleSubmit,
-      handleAssignGroup,
       handleYearChange,
       handleAssignSubmit,
       handleDelete,

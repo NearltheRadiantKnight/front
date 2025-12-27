@@ -60,8 +60,8 @@
           :default-sort="{prop: 'id', order: 'ascending'}"
       >
         <!-- 学生基本信息 -->
-        <el-table-column prop="id" label="学号" width="100" sortable />
-        <el-table-column prop="real_name" label="姓名" width="80" />
+        <el-table-column prop="stu_id" label="学号" width="100" sortable />
+        <el-table-column prop="realName" label="姓名" width="80" />
 
         <!-- 题目信息 -->
         <el-table-column label="题目" min-width="180">
@@ -78,7 +78,7 @@
         </el-table-column>
 
         <!-- 指导教师 -->
-        <el-table-column prop="advisor_name" label="指导教师" width="100" />
+        <el-table-column prop="teacherName" label="指导教师" width="100" />
 
         <!-- 当前成绩 -->
         <el-table-column label="当前成绩" width="120">
@@ -216,6 +216,7 @@ import ScoreDialog from './ScoreDialog.vue';
 import ExportDialog from './ExportDialog.vue';
 import DefenseComment from './DefenseComment.vue';
 import TeacherScoresDialog from './TeacherScoresDialog.vue';
+import request from "@/api";
 
 interface Student {
   id: string;
@@ -305,7 +306,6 @@ export default defineComponent({
         const userInfo = localStorage.getItem('userInfo');
         if (userInfo) {
           const user = JSON.parse(userInfo);
-          console.log('loadDefenseGroup - 用户信息:', user);
 
           if (user && user.isDefenseLeader) {
             isDefenseLeader.value = true;
@@ -313,14 +313,11 @@ export default defineComponent({
           } else {
             isDefenseLeader.value = false;
           }
+          currentGroup.value = {
+            groupId: user.groupId,
+            teacherId: user.id
+          };
         }
-
-        currentGroup.value = {
-          groupId: 'G2025001',
-          teacherId: currentTeacherId.value
-        };
-
-        console.log('答辩组长状态:', isDefenseLeader.value);
         ElMessage.success('已加载答辩小组信息');
       } catch (error) {
         console.error('加载答辩小组信息失败:', error);
@@ -331,62 +328,19 @@ export default defineComponent({
     // 加载小组成员
     const loadGroupStudents = async () => {
       loading.value = true;
+      request.get("/groups/studentlist", {
+        params:{
+          group_id: currentGroup.value.groupId
+        }
+      }).then(res=>{
+        groupStudents.value = res.data;
+      }).finally(()=>loading.value = false);
       try {
-        // 模拟数据
-        groupStudents.value = [
-          {
-            id: '2023001',
-            real_name: '王小明',
-            title: '基于深度学习的图像识别系统研究',
-            type: 0,
-            summary: '本文研究了基于深度学习的图像识别技术，提出了改进的卷积神经网络模型，在ImageNet数据集上达到了95.2%的准确率。',
-            advisor_name: '张教授',
-            scores: {
-              total: 85,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              paper_quality: 35,
-              presentation: 25,
-              qa_performance: 25
-            },
-            comment: '该生论文选题具有较好的理论价值和实际意义，研究内容充实，方法得当。答辩过程中表述清晰，回答问题准确。建议在应用场景方面进一步拓展。'
-          },
-          {
-            id: '2023002',
-            real_name: '张小红',
-            title: '智能家居控制系统设计',
-            type: 1,
-            summary: '设计了一个基于物联网的智能家居控制系统，实现了灯光、温度、安防等设备的智能控制，系统运行稳定，用户体验良好。',
-            advisor_name: '王教授',
-            scores: {
-              total: 92,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              design_quality1: 14,
-              design_quality2: 13,
-              design_quality3: 14,
-              design_presentation: 23,
-              design_qa1: 14,
-              design_qa2: 14
-            },
-            comment: '设计内容完整，系统功能完善，界面友好。答辩过程中演示流畅，对技术细节掌握扎实。建议增加与其他智能设备的兼容性。'
-          },
-          {
-            id: '2023003',
-            real_name: '李小刚',
-            title: '云计算平台性能优化研究',
-            type: 0,
-            summary: '研究了云计算平台性能瓶颈问题，提出了基于负载预测的资源调度算法，提升了资源利用率15%。',
-            advisor_name: '刘教授',
-          }
-        ];
 
-        // 如果是答辩组长，加载所有教师的打分情况
         if (isDefenseLeader.value) {
           await loadTeacherScoresForAllStudents();
         }
 
-        ElMessage.success(`已加载 ${groupStudents.value.length} 名学生`);
       } catch (error) {
         ElMessage.error('加载学生列表失败');
       } finally {

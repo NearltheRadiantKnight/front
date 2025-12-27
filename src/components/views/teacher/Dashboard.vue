@@ -93,28 +93,22 @@ export default defineComponent({
     onMounted(() => {
       console.log('教师Dashboard已加载');
       loginTime.value = new Date().toLocaleString();
-      // 从API或localStorage加载教师信息
       loadTeacherInfo();
     });
 
     // 加载教师信息
     const loadTeacherInfo = () => {
       try {
-        // 从localStorage获取登录时保存的用户信息
         const userStr = localStorage.getItem('userInfo');
         if (userStr) {
           const userData = JSON.parse(userStr);
-          if (userData.userInfo) {
-            const userInfo = userData.userInfo;
-            // 更新teacherInfo，保留原有结构
-            teacherInfo.value.name = userInfo.realName || teacherInfo.value.name;
-            teacherInfo.value.department = userInfo.instituteName || teacherInfo.value.department;
-            teacherInfo.value.teacherId = userInfo.id || teacherInfo.value.teacherId;
-            teacherInfo.value.groupId = userInfo.groupId || null;
-            teacherInfo.value.isDefenseLeader = userInfo.isDefenseLeader || false;
+          // 更新teacherInfo，保留原有结构
+          teacherInfo.value.name = userData.realName || teacherInfo.value.name;
+          teacherInfo.value.department = userData.instituteName || teacherInfo.value.department;
+          teacherInfo.value.teacherId = userData.id || teacherInfo.value.teacherId;
+          teacherInfo.value.groupId = userData.groupId || null;
+          teacherInfo.value.isDefenseLeader = userData.isDefenseLeader || false;
 
-            console.log('教师信息加载完成，isDefenseLeader:', teacherInfo.value.isDefenseLeader);
-          }
         }
       } catch (error) {
         console.error('加载教师信息失败:', error);

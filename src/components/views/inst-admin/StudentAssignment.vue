@@ -47,9 +47,11 @@
   </el-dialog>
 </template>
 
-<script>
+<script lang="ts">
 import request from "@/api/index.ts";
 import {ref} from "vue";
+import type { Action } from 'element-plus'
+import {ElMessageBox} from "element-plus";
 
 export default {
   name: 'StudentAssignmentDialog',
@@ -127,10 +129,28 @@ export default {
 
     async assignStudent() {
       if (!this.selectedStudentId) return
-
-      await request.post('/students/assign-group', {
+      let type = 0;
+      await ElMessageBox.confirm('选择答辩类型','选择',{
+        confirmButtonText: '论文',
+        cancelButtonText: '设计',
+        center: true,
+        distinguishCancelAndClose: true
+      }).then(()=>{
+        type = 0;
+      }).catch((action : Action)=>{
+        if (action === 'close'){
+          type = 2;
+        }else {
+          type = 1;
+        }
+      });
+      if (type > 1){
+        return;
+      }
+      request.post('/students/assign-group', {
         student_id: this.selectedStudentId,
-        group_id: this.group.id
+        group_id: this.group.id,
+        type: type
       }).then(res=>{
         this.fetchAvailableStudents();
       }).catch(err=>{
@@ -142,19 +162,6 @@ export default {
       this.selectedStudentId = student.id
       this.assignStudent()
     },
-
-    async removeStudent(student) {
-      try {
-        await this.$api.defenseGroup.removeStudent(this.group.id, student.id)
-
-        // 刷新学生列表
-        await this.fetchAvailableStudents()
-
-        this.$emit('assigned')
-      } catch (error) {
-        this.$message.error('移除失败：' + error.message)
-      }
-    }
   }
 }
 </script>
