@@ -74,7 +74,7 @@
                   <el-input v-model="teacherForm.password" placeholder="请输入密码" type="password"
                             @keyup.enter="handleTeacherLogin"></el-input>
                 </el-form-item>
-                <el-form-item label="答辩年份：" prop="defenseYear">
+                <el-form-item label="答辩年份：" prop="year">
                   <el-select
                       v-model="teacherForm.year"
                       placeholder="请先输入教师编号获取可用年份"
@@ -133,7 +133,7 @@ interface AdminForm {
 interface TeacherForm {
   username: string;
   password: string;
-  year: number | null;
+  defenseYear: number | null;
 }
 
 export default defineComponent({
@@ -159,7 +159,7 @@ export default defineComponent({
     const teacherForm = ref<TeacherForm>({
       username: '',
       password: '',
-      year: null
+      defenseYear: null
     });
 
     // 加载状态
@@ -186,7 +186,7 @@ export default defineComponent({
       password: [
         { required: true, message: '请输入密码', trigger: 'blur' }
       ],
-      year: [
+      defenseYear: [
         { required: true, message: '请选择答辩年份', trigger: 'change' }
       ]
     };
@@ -217,7 +217,7 @@ export default defineComponent({
           // 降序排列年份
           yearOptions.value = response.data.sort((a: number, b: number) => b - a);
           // 默认选中最新年份
-          teacherForm.value.year = yearOptions.value[0];
+          teacherForm.value.defenseYear = yearOptions.value[0];
 
           if (yearOptions.value.length === 1) {
             ElMessage.success(`获取到1个可用年份：${yearOptions.value[0]}年`);
@@ -310,7 +310,7 @@ export default defineComponent({
         userApi.loginWithYear({
           username: teacherForm.value.username,
           password: teacherForm.value.password,
-          year: teacherForm.value.year
+          defenseYear: teacherForm.value.year
         })
             .then((res: any) => {
               if (res.code === 200) {
@@ -334,15 +334,15 @@ export default defineComponent({
       // 添加调试日志
       console.log('登录成功数据:', data);
       console.log('用户类型:', data.userType);
-      
+
       // 存储登录信息
       localStorage.setItem('token', data.token || `mock-token-${Date.now()}`);
-      
+
       localStorage.setItem('userType', data.userType);
 
       // 如果是教师登录，存储答辩年份
       if (loginType.value === 'teacher' && teacherForm.value.year) {
-        localStorage.setItem('defenseYear', teacherForm.value.year.toString());
+        localStorage.setItem('year', teacherForm.value.year.toString());
       }
 
       if (data.userInfo) {

@@ -11,15 +11,6 @@
         <el-tag type="success">院系管理员</el-tag>
         <span class="welcome">欢迎，{{ adminName }}</span>
 
-        <el-button
-          type="text"
-          @click="goToPhotoUpload"
-          class="upload-btn"
-          title="上传签名"
-        >
-          <i class="el-icon-edit"></i> 上传签名
-        </el-button>
-
         <el-button type="text" @click="logout">退出登录</el-button>
       </div>
     </el-header>
@@ -36,14 +27,6 @@
             <p class="name">{{ adminName }}</p>
             <p class="role">{{ instituteName }}</p>
             <p class="time">登录时间: {{ loginTime }}</p>
-            <el-button
-              type="text"
-              size="small"
-              @click="goToPhotoUpload"
-              class="photo-upload-link"
-            >
-              <i class="el-icon-edit"></i> 签名管理
-            </el-button>
           </div>
         </div>
 
@@ -104,14 +87,12 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import router from '@/router'
 import { ElMessageBox } from 'element-plus';
 
 export default defineComponent({
   name: 'InstAdminDashboard',
   setup() {
-    const router = useRouter();
-
     const adminName = ref('院系管理员');
     const instituteName = ref('计算机学院');
     const loginTime = ref('');
@@ -129,7 +110,6 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      console.log('院系管理员Dashboard已加载');
       loginTime.value = new Date().toLocaleString();
 
       // 从本地存储获取用户信息
@@ -145,11 +125,6 @@ export default defineComponent({
         }
       }
     });
-
-    // 跳转到签名照上传页面
-    const goToPhotoUpload = () => {
-      router.push('/inst-admin/photo-upload');
-    };
 
     const logout = () => {
       ElMessageBox.confirm('确定要退出登录吗？', '提示', {
@@ -167,7 +142,6 @@ export default defineComponent({
       instituteName,
       loginTime,
       activeMenu,
-      goToPhotoUpload,
       logout
     };
   }

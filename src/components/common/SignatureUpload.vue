@@ -111,7 +111,7 @@ export default defineComponent({
 
       try {
         const info = JSON.parse(userInfo);
-        return info.id || info.userId || info.user_id || '';
+        return info.id;
       } catch (error) {
         console.error('解析用户信息失败:', error);
         return null;
@@ -156,17 +156,12 @@ export default defineComponent({
       try {
         const userId = currentUserId.value;
         if (!userId) {
-          console.warn('无法获取用户ID');
-          ElMessage.warning('请先登录');
           currentSignature.value = '';
           return;
         }
 
-        console.log('加载签名，用户ID:', userId);
-
         // 使用统一的API调用
         const result = await userApi.getCurrentSignature(userId);
-        console.log('API响应:', result);
 
         if (result.code === 200) {
           if (result.data) {

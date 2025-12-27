@@ -291,24 +291,15 @@ export default defineComponent({
         const loadTeachers = async () => {
             loading.value = true;
             try {
-                const response = await request.get('/api/teachers/list', {
+                await request.get('/teachers/list', {
                     params: {
                         institute_id: instituteId.value,
-                        page: currentPage.value,
-                        size: pageSize.value,
-                        search: searchKeyword.value
                     }
+                }).then(res=>{
+                  teacherList.value = res.data;
+                  total.value = res.data.length;
                 });
-
-                teacherList.value = response.data.list.map((teacher: any) => {
-                    return {
-                        ...teacher,
-                        name: teacher.realName || teacher.name || '未知'
-                    };
-                });
-                total.value = response.data.total;
             } catch (error) {
-                console.error('加载教师失败:', error);
                 ElMessage.error('加载失败');
             } finally {
                 loading.value = false;
@@ -338,7 +329,7 @@ export default defineComponent({
             if (!valid) return;
 
             try {
-                await request.post('/api/teachers/create', {
+                await request.post('/teachers/create', {
                     id: addForm.value.id,
                     realName: addForm.value.name,
                     phone: addForm.value.phone,
@@ -367,7 +358,7 @@ export default defineComponent({
                     }
                 );
 
-                await request.post('/api/teachers/remove-from-group', null, {
+                await request.post('/teachers/remove-from-group', null, {
                     params: {
                         teacher_id: teacher.id,
                         group_id: group.groupId
@@ -409,7 +400,7 @@ export default defineComponent({
 
         const loadTeacherGroups = async (teacherId: string) => {
             try {
-                const response = await request.get(`/api/teachers/${teacherId}`);
+                const response = await request.get(`/teachers/${teacherId}`);
 
                 if (response.data) {
                     if (response.data.groups) {
@@ -434,7 +425,7 @@ export default defineComponent({
 
         const loadYearOptions = async () => {
             try {
-                const response = await request.get('/api/teachers/years');
+                const response = await request.get('/teachers/years');
                 yearOptions.value = response.data.map((year: number) => ({
                     value: year,
                     label: year.toString()
@@ -455,7 +446,7 @@ export default defineComponent({
             }
 
             try {
-                const response = await request.get('/api/teachers/groups-by-year', {
+                const response = await request.get('/teachers/groups-by-year', {
                     params: { year }
                 });
 
@@ -479,7 +470,7 @@ export default defineComponent({
 
            addingGroup.value = true;
            try {
-               const response = await request.post('/api/teachers/add-to-group', null, {
+               const response = await request.post('/teachers/add-to-group', null, {
                    params: {
                        teacher_id: selectedTeacher.value.id,
                        group_id: newGroupForm.value.groupId,
@@ -534,7 +525,7 @@ export default defineComponent({
                     }
                 );
 
-                await request.post('/api/teachers/remove-from-group', null, {
+                await request.post('/teachers/remove-from-group', null, {
                     params: {
                         teacher_id: selectedTeacher.value.id,
                         group_id: group.groupId
@@ -567,7 +558,7 @@ export default defineComponent({
                 }
             ).then(async () => {
                 try {
-                    await request.delete(`/api/teachers/delete/${row.id}`);
+                    await request.delete(`/teachers/delete/${row.id}`);
 
                     loadTeachers();
 
