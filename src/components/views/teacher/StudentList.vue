@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">指导学生管理</h2>
-        <p class="page-subtitle">管理您所指导的学生，包括填写题目摘要、评阅成绩和选择评阅人</p>
+        <p class="page-subtitle">管理您所指导的学生，包括填写题目摘要和选择评阅人</p>
       </div>
       <div class="header-actions">
         <el-button type="primary" icon="el-icon-plus" @click="showAddStudentDialog = true">
@@ -158,14 +158,6 @@
                       {{ scope.row.reviewer_name ? '更换评阅人' : '选择评阅人' }}
                     </el-dropdown-item>
 
-                    <!-- 评阅打分 -->
-                    <el-dropdown-item
-                        :disabled="!scope.row.reviewer_id || scope.row.status !== 'defensing'"
-                        icon="el-icon-document-checked"
-                        command="score"
-                    >
-                      评阅打分
-                    </el-dropdown-item>
                     <!-- 删除学生 -->
                     <el-dropdown-item
                         :disabled="scope.row.status === 'defensed'"
@@ -441,10 +433,6 @@ export default defineComponent({
       }
     };
 
-    const openScoreDialog = (student: Student) => {
-      ElMessage.info(`开始对 ${student.real_name} 进行评阅打分`);
-    };
-
     // 删除学生确认
     const confirmDeleteStudent = (student: Student) => {
       ElMessageBox.confirm(
@@ -505,16 +493,6 @@ export default defineComponent({
         case 'defensing': return 'success';
         case 'defensed': return '';
         default: return 'info';
-      }
-    };
-
-    const getStudentStatusText = (status?: string) => {
-      switch (status) {
-        case 'writing': return '论文撰写中';
-        case 'reviewing': return '等待评阅';
-        case 'defensing': return '答辩中';
-        case 'defensed': return '已答辩';
-        default: return '准备中';
       }
     };
 
