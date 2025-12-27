@@ -27,30 +27,10 @@
                 <el-table-column prop="name" label="姓名" width="90" />
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column prop="email" label="邮箱" width="180" />
-                <el-table-column label="已加入小组" min-width="250">
-                    <template #default="scope">
-                        <div v-if="scope.row.groups && scope.row.groups.length > 0" class="groups-display">
-                            <div v-for="group in scope.row.groups" :key="`${group.groupId}-${group.groupYear}`" class="group-tag-item">
-                                <el-tag
-                                    size="small"
-                                    :type="group.isDefenseLeader ? 'warning' : 'info'"
-                                    class="group-tag"
-                                    closable
-                                    @close="handleQuickRemove(scope.row, group)"
-                                >
-                                    {{ group.groupYear }}年 小组#{{ group.groupId }}
-                                    <span v-if="group.isDefenseLeader" style="margin-left: 2px;">👑</span>
-                                </el-tag>
-                            </div>
-                        </div>
-                        <span v-else style="color: #999;">未加入任何小组</span>
-                    </template>
-                </el-table-column>
+
                 <el-table-column label="操作" width="120" fixed="right">
                     <template #default="scope">
-                        <el-button type="text" size="small" @click="handleManageGroups(scope.row)">
-                            管理小组
-                        </el-button>
+
                         <el-button
                             type="text"
                             size="small"

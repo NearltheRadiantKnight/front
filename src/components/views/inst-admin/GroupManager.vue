@@ -12,6 +12,7 @@
         :loading="loading"
         @add-group="showAddGroupDialog"
         @edit-group="handleEditGroup"
+        @assign-student="handleAssignStudent"
         @view-students="handleViewStudents"
         @delete-group="handleDeleteGroup"
     />
@@ -23,6 +24,13 @@
         :teachers="teacherList"
         :year="year"
         @submit="handleSubmitGroup"
+    />
+
+<!--    学生分配对话框-->
+    <StudentAssignmentDialog
+        v-model="studentDialogVisible"
+        :group="selectedGroup"
+        :year="year"
     />
 
     <!-- 学生列表对话框 -->
@@ -39,10 +47,12 @@ import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
 import StudentListDialog from './StudentList.vue'
 import request from "@/api/index.ts";
+import StudentAssignmentDialog from "@/components/views/inst-admin/StudentAssignment.vue";
 
 export default {
   name: 'GroupManager',
   components: {
+    StudentAssignmentDialog,
     GroupList,
     GroupFormDialog,
     StudentListDialog
@@ -65,6 +75,7 @@ export default {
       teacherList: [],
 
       groupFormVisible: false,
+      studentDialogVisible: false,
       studentListDialogVisible: false,
 
       // 表单数据''
@@ -157,16 +168,17 @@ export default {
         this.$message.error('删除失败：' + error.message)
       }
     },
-
+    handleAssignStudent(group){
+      this.selectedGroup = group;
+      this.studentDialogVisible = true;
+    },
     handleViewStudents(group) {
       this.selectedGroup = group
       this.studentListDialogVisible = true
     },
 
     handleStudentRemoved() {
-      // 刷新答辩组数据
       this.fetchGroups()
-      this.$message.success('学生移除成功')
     }
   }
 }

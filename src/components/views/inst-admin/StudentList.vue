@@ -29,11 +29,11 @@
           style="margin-top: 15px;"
           height="400px"
       >
-        <el-table-column prop="id" label="学号" width="120" fixed="left"></el-table-column>
+        <el-table-column prop="stu_id" label="学号" width="120" fixed="left"></el-table-column>
         <el-table-column prop="realName" label="姓名" width="100"></el-table-column>
         <el-table-column prop="teacherName" label="指导老师" width="120"></el-table-column>
-        <el-table-column prop="institute" label="院系" width="150"></el-table-column>
-        <el-table-column prop="defenseTitle" label="答辩题目" min-width="200">
+        <el-table-column prop="instituteName" label="院系" width="150"></el-table-column>
+        <el-table-column prop="title" label="答辩题目" min-width="200">
           <template #default="{ row }">
             <span v-if="row.defenseTitle">{{ row.defenseTitle }}</span>
             <span v-else class="text-muted">未填写</span>
@@ -59,16 +59,8 @@
           <span class="value">{{ students.length }}</span>
         </div>
         <div class="summary-item">
-          <span class="label">答辩题目：</span>
-          <span class="value">{{ studentsWithTitleCount }}</span>
-        </div>
-        <div class="summary-item">
-          <span class="label">组容量：</span>
-          <span class="value">{{ group?.maxStudents || 0 }} 人</span>
-        </div>
-        <div class="summary-item">
           <span class="label">已使用：</span>
-          <span class="value">{{ students.length }} / {{ group?.maxStudents || 0 }}</span>
+          <span class="value">{{ students.length }} / {{ group?.max_student_count || 0 }}</span>
         </div>
       </div>
     </div>
@@ -126,9 +118,6 @@ export default {
             (student.realName && student.realName.toLowerCase().includes(keyword))
         )
       })
-    },
-    studentsWithTitleCount() {
-      return this.students.filter(s => s.defenseTitle).length
     }
   },
   watch: {
@@ -148,30 +137,23 @@ export default {
     },
 
     async removeStudent(student) {
-      try {
-        await this.$confirm(`确定要将学生 ${student.realName} (${student.id}) 从答辩组移除吗？`, '提示', {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        })
+      await this.$confirm(`确定要将学生 ${student.realName} (${student.stu_id}) 从答辩组移除吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
 
-        // 调用API从答辩组移除学生
-        await this.$api.defenseGroup.removeStudent(this.group.id, student.id)
-
-        // 从列表中移除
+      await request.post("/groups/deletefromgroup", {
+        group_id: this.group.id,
+        student_id: student.stu_id
+      }).then(res => {
         const index = this.students.findIndex(s => s.id === student.id)
         if (index !== -1) {
           this.students.splice(index, 1)
         }
-
         this.$message.success('学生移除成功')
-        // 通知父组件学生已移除
         this.$emit('student-removed')
-      } catch (error) {
-        if (error !== 'cancel') {
-          this.$message.error('移除失败：' + error.message)
-        }
-      }
+      });
     },
 
     handleSearch() {

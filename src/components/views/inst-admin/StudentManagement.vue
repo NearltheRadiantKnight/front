@@ -157,285 +157,288 @@ import request from '@/api';
 
 export default defineComponent({
     name: 'StudentManagement',
-    setup() {
-        // Refs 声明
-        const studentFormRef = ref();
-        const loading = ref(false);
-        const editDialogVisible = ref(false);
-        const assignDialogVisible = ref(false);
-        const isEditMode = ref(false);
+  setup: function () {
+    // Refs 声明
+    const studentFormRef = ref();
+    const loading = ref(false);
+    const editDialogVisible = ref(false);
+    const assignDialogVisible = ref(false);
+    const isEditMode = ref(false);
 
-        const searchKeyword = ref('');
-        const studentList = ref([] as any[]);
-        const currentPage = ref(1);
-        const pageSize = ref(10);
-        const total = ref(0);
+    const searchKeyword = ref('');
+    const studentList = ref([] as any[]);
+    const currentPage = ref(1);
+    const pageSize = ref(10);
+    const total = ref(0);
 
-        const instituteId = ref(1);
+    const instituteId = ref(1);
 
-        // 表单相关 - 使用前端字段名
-        const studentForm = ref({
-            student_id: '',          // 前端字段名：学号
-            name: '',                // 前端字段名：姓名
-            phone: '',               // 前端字段名：电话
-            email: '',               // 前端字段名：邮箱
-            institute_id: instituteId.value  // 前端字段名：学院ID
+    // 表单相关 - 使用前端字段名
+    const studentForm = ref({
+      student_id: '',          // 前端字段名：学号
+      name: '',                // 前端字段名：姓名
+      phone: '',               // 前端字段名：电话
+      email: '',               // 前端字段名：邮箱
+      institute_id: instituteId.value  // 前端字段名：学院ID
+    });
+
+    // 表单验证规则 - 使用前端字段名
+    const studentRules = {
+      student_id: [
+        {required: true, message: '请输入学号', trigger: 'blur'},
+        {pattern: /^\d{7,12}$/, message: '学号为7-12位数字', trigger: 'blur'}
+      ],
+      name: [
+        {required: true, message: '请输入姓名', trigger: 'blur'},
+        {min: 2, max: 20, message: '长度在2到20个字符', trigger: 'blur'}
+      ],
+      email: [
+        {type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur'}
+      ],
+      phone: [
+        {pattern: /^1[3-9]\d{9}$|^$/, message: '请输入正确的手机号码或留空', trigger: 'blur'}
+      ]
+    };
+
+    // 分配小组相关
+    const selectedStudent = ref({} as any);
+    const selectedYear = ref(null as number | null);
+    const selectedGroupId = ref(null as number | null);
+    const yearOptions = ref([] as any[]);
+    const groupOptions = ref([] as any[]);
+
+    // 加载学生列表
+    const loadStudents = async () => {
+      loading.value = true;
+      try {
+        const response = await request.get('/students/list', {
+          params:{
+            institute_id: instituteId.value,
+            currentpage: currentPage.value,
+            pagesize: pageSize.value
+          }
         });
-
-        // 表单验证规则 - 使用前端字段名
-        const studentRules = {
-            student_id: [
-                { required: true, message: '请输入学号', trigger: 'blur' },
-                { pattern: /^\d{7,12}$/, message: '学号为7-12位数字', trigger: 'blur' }
-            ],
-            name: [
-                { required: true, message: '请输入姓名', trigger: 'blur' },
-                { min: 2, max: 20, message: '长度在2到20个字符', trigger: 'blur' }
-            ],
-            email: [
-                { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-            ],
-            phone: [
-                { pattern: /^1[3-9]\d{9}$|^$/, message: '请输入正确的手机号码或留空', trigger: 'blur' }
-            ]
-        };
-
-        // 分配小组相关
-        const selectedStudent = ref({} as any);
-        const selectedYear = ref(null as number | null);
-        const selectedGroupId = ref(null as number | null);
-        const yearOptions = ref([] as any[]);
-        const groupOptions = ref([] as any[]);
-
-        // 加载学生列表
-        const loadStudents = async () => {
-            loading.value = true;
-            try {
-                const response = await request.get('/students/list?institute_id='+instituteId.value);
-                if (response.code === 200) {
-                    studentList.value = response.data.list || [];
-                    console.log(studentList.value)
-                    total.value = response.data.total || 0;
-                }
-            } catch (error) {
-                console.error('加载学生失败:', error);
-                ElMessage.error('加载失败');
-            } finally {
-                loading.value = false;
+        if (response.code === 200) {
+          studentList.value = response.data || [];
+          request.get("/students/count",{
+            params:{
+              institute_id: instituteId.value
             }
+          }).then(res=>{
+            total.value = res.data;
+          });
+        }
+      } catch (error) {
+        console.error('加载学生失败:', error);
+        ElMessage.error('加载失败');
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    // 搜索
+    const handleSearch = () => {
+      currentPage.value = 1;
+      loadStudents();
+    };
+
+    // 添加学生
+    const handleAdd = () => {
+      isEditMode.value = false;
+      studentForm.value = {
+        student_id: '',
+        name: '',
+        phone: '',
+        email: '',
+        institute_id: instituteId.value
+      };
+      editDialogVisible.value = true;
+    };
+
+    // 编辑学生
+    const handleEdit = (row: any) => {
+      isEditMode.value = true;
+      // 将后端字段名转换为前端字段名
+      studentForm.value = {
+        student_id: row.id || row.studentId,    // 学号转换
+        name: row.name || row.realName,         // 姓名转换
+        phone: row.tel || row.phone,            // 电话转换
+        email: row.email,
+        institute_id: instituteId.value
+      };
+      editDialogVisible.value = true;
+    };
+
+    // 保存学生 - 提交时转换字段名
+    const handleSubmit = async () => {
+      if (!studentFormRef.value) return;
+
+      const valid = await studentFormRef.value.validate();
+      if (!valid) return;
+
+      try {
+        const url = isEditMode.value ? '/students/update' : '/students/create';
+
+        // 转换字段名：前端字段名 -> 后端字段名
+        const requestData = {
+          id: studentForm.value.student_id,          // 转换为后端 id
+          realName: studentForm.value.name,          // 转换为后端 realName
+          tel: studentForm.value.phone,              // 转换为后端 tel
+          email: studentForm.value.email,
+          instituteId: studentForm.value.institute_id // 转换为后端 instituteId
         };
 
-        // 搜索
-        const handleSearch = () => {
-            currentPage.value = 1;
+        console.log('提交的数据:', requestData); // 调试用
+
+        const response = await request.post(url, requestData);
+
+        if (response.code === 200) {
+          ElMessage.success(isEditMode.value ? '更新成功' : '创建成功');
+          editDialogVisible.value = false;
+          loadStudents();
+        } else {
+          ElMessage.error(response.message || '操作失败');
+        }
+      } catch (error: any) {
+        console.error('保存学生失败:', error);
+        ElMessage.error(error.response?.data?.message || '操作失败');
+      }
+    };
+
+    // 分配小组
+    const handleAssignGroup = (row: any) => {
+      selectedStudent.value = row;
+      selectedYear.value = null;
+      selectedGroupId.value = null;
+      loadYearOptions();
+      assignDialogVisible.value = true;
+    };
+
+    const loadYearOptions = async () => {
+      try {
+        const response = await request.get('/defense/allyear');
+        if (response.code === 200) {
+          yearOptions.value = response.data;
+        }
+      } catch (error) {
+        console.error('加载年份失败:', error);
+      }
+    };
+
+    const handleYearChange = async (year: number) => {
+      try {
+        const response = await request.get('/groups/all', {
+          params: {year, institute_id: instituteId.value}
+        });
+        if (response.code === 200) {
+          groupOptions.value = response.data;
+        }
+      } catch (error) {
+        console.error('加载小组失败:', error);
+      }
+    };
+
+    const handleAssignSubmit = async () => {
+      if (!selectedGroupId.value) {
+        ElMessage.warning('请选择小组');
+        return;
+      }
+      await request.post('/students/assign-group', {
+        student_id: selectedStudent.value.id,
+        group_id: selectedGroupId.value
+      }).then(res=>{
+        ElMessage.success('分配成功');
+        loadStudents();
+      }).catch(err=>{
+        ElMessage.error(err.message);
+      });
+    };
+
+    // 删除学生
+    const handleDelete = (row: any) => {
+      ElMessageBox.confirm(
+          `确定要删除学生 "${row.realName || row.name}"（${row.id}）吗？`,
+          '确认删除',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+      ).then(async () => {
+        try {
+          const response = await request.delete(`/students/delete/${row.id}`);
+          if (response.code === 200) {
+            ElMessage.success('删除成功');
             loadStudents();
-        };
+          }
+        } catch (error) {
+          console.error('删除失败:', error);
+          ElMessage.error('删除失败');
+        }
+      }).catch(() => {
+      });
+    };
 
-        // 添加学生
-        const handleAdd = () => {
-            isEditMode.value = false;
-            studentForm.value = {
-                student_id: '',
-                name: '',
-                phone: '',
-                email: '',
-                institute_id: instituteId.value
-            };
-            editDialogVisible.value = true;
-        };
+    // 分页
+    const handleSizeChange = (size: number) => {
+      pageSize.value = size;
+      loadStudents();
+    };
 
-        // 编辑学生
-        const handleEdit = (row: any) => {
-            isEditMode.value = true;
-            // 将后端字段名转换为前端字段名
-            studentForm.value = {
-                student_id: row.id || row.studentId,    // 学号转换
-                name: row.name || row.realName,         // 姓名转换
-                phone: row.tel || row.phone,            // 电话转换
-                email: row.email,
-                institute_id: instituteId.value
-            };
-            editDialogVisible.value = true;
-        };
+    const handlePageChange = (page: number) => {
+      currentPage.value = page;
+      loadStudents();
+    };
 
-        // 保存学生 - 提交时转换字段名
-        const handleSubmit = async () => {
-            if (!studentFormRef.value) return;
+    // 初始化
+    const init = () => {
+      const userInfo = localStorage.getItem('userInfo');
+      if (userInfo) {
+        try {
+          const info = JSON.parse(userInfo);
+          instituteId.value = info.InstId;
+        } catch (error) {
+          console.error('解析用户信息失败:', error);
+        }
+      }
 
-            const valid = await studentFormRef.value.validate();
-            if (!valid) return;
+      loadStudents();
+      loadYearOptions();
+    };
 
-            try {
-                const url = isEditMode.value ? '/students/update' : '/students/create';
+    return {
+      studentFormRef,
+      loading,
+      editDialogVisible,
+      assignDialogVisible,
+      isEditMode,
+      searchKeyword,
+      studentList,
+      currentPage,
+      pageSize,
+      total,
+      studentForm,
+      studentRules,
+      selectedStudent,
+      selectedYear,
+      selectedGroupId,
+      yearOptions,
+      groupOptions,
 
-                // 转换字段名：前端字段名 -> 后端字段名
-                const requestData = {
-                    id: studentForm.value.student_id,          // 转换为后端 id
-                    realName: studentForm.value.name,          // 转换为后端 realName
-                    tel: studentForm.value.phone,              // 转换为后端 tel
-                    email: studentForm.value.email,
-                    instituteId: studentForm.value.institute_id // 转换为后端 instituteId
-                };
-
-                console.log('提交的数据:', requestData); // 调试用
-
-                const response = await request.post(url, requestData);
-
-                if (response.code === 200) {
-                    ElMessage.success(isEditMode.value ? '更新成功' : '创建成功');
-                    editDialogVisible.value = false;
-                    loadStudents();
-                } else {
-                    ElMessage.error(response.message || '操作失败');
-                }
-            } catch (error: any) {
-                console.error('保存学生失败:', error);
-                ElMessage.error(error.response?.data?.message || '操作失败');
-            }
-        };
-
-        // 分配小组
-        const handleAssignGroup = (row: any) => {
-            selectedStudent.value = row;
-            selectedYear.value = null;
-            selectedGroupId.value = null;
-            loadYearOptions();
-            assignDialogVisible.value = true;
-        };
-
-        const loadYearOptions = async () => {
-            try {
-                const response = await request.get('/defense/allyear');
-                if (response.code === 200) {
-                    yearOptions.value = response.data;
-                }
-            } catch (error) {
-                console.error('加载年份失败:', error);
-            }
-        };
-
-        const handleYearChange = async (year: number) => {
-            try {
-                const response = await request.get('/groups/all', {
-                    params: { year, institute_id: instituteId.value }
-                });
-                if (response.code === 200) {
-                    groupOptions.value = response.data;
-                }
-            } catch (error) {
-                console.error('加载小组失败:', error);
-            }
-        };
-
-        const handleAssignSubmit = async () => {
-            if (!selectedGroupId.value) {
-                ElMessage.warning('请选择小组');
-                return;
-            }
-
-            try {
-                const response = await request.post('/students/assign-group', {
-                    student_id: selectedStudent.value.id, // 使用学号作为student_id
-                    group_id: selectedGroupId.value
-                });
-
-                if (response.code === 200) {
-                    ElMessage.success('分配成功');
-                    assignDialogVisible.value = false;
-                    loadStudents();
-                } else {
-                    ElMessage.error(response.message || '分配失败');
-                }
-            } catch (error) {
-                console.error('分配小组失败:', error);
-                ElMessage.error('分配失败');
-            }
-        };
-
-        // 删除学生
-        const handleDelete = (row: any) => {
-            ElMessageBox.confirm(
-                `确定要删除学生 "${row.realName || row.name}"（${row.id}）吗？`,
-                '确认删除',
-                {
-                    confirmButtonText: '确定',
-                    cancelButtonText: '取消',
-                    type: 'warning'
-                }
-            ).then(async () => {
-                try {
-                    const response = await request.delete(`/students/delete/${row.id}`);
-                    if (response.code === 200) {
-                        ElMessage.success('删除成功');
-                        loadStudents();
-                    }
-                } catch (error) {
-                    console.error('删除失败:', error);
-                    ElMessage.error('删除失败');
-                }
-            }).catch(() => {});
-        };
-
-        // 分页
-        const handleSizeChange = (size: number) => {
-            pageSize.value = size;
-            loadStudents();
-        };
-
-        const handlePageChange = (page: number) => {
-            currentPage.value = page;
-            loadStudents();
-        };
-
-        // 初始化
-        const init = () => {
-            const userInfo = localStorage.getItem('userInfo');
-            if (userInfo) {
-                try {
-                    const info = JSON.parse(userInfo);
-                    instituteId.value = info.InstId;
-                } catch (error) {
-                    console.error('解析用户信息失败:', error);
-                }
-            }
-
-            loadStudents();
-            loadYearOptions();
-        };
-
-        return {
-            studentFormRef,
-            loading,
-            editDialogVisible,
-            assignDialogVisible,
-            isEditMode,
-            searchKeyword,
-            studentList,
-            currentPage,
-            pageSize,
-            total,
-            studentForm,
-            studentRules,
-            selectedStudent,
-            selectedYear,
-            selectedGroupId,
-            yearOptions,
-            groupOptions,
-
-            loadStudents,
-            handleSearch,
-            handleAdd,
-            handleEdit,
-            handleSubmit,
-            handleAssignGroup,
-            handleYearChange,
-            handleAssignSubmit,
-            handleDelete,
-            handleSizeChange,
-            handlePageChange,
-            init
-        };
-    },
+      loadStudents,
+      handleSearch,
+      handleAdd,
+      handleEdit,
+      handleSubmit,
+      handleAssignGroup,
+      handleYearChange,
+      handleAssignSubmit,
+      handleDelete,
+      handleSizeChange,
+      handlePageChange,
+      init
+    };
+  },
     mounted() {
         this.init();
     }
