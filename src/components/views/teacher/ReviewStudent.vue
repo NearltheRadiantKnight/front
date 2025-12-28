@@ -212,24 +212,13 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import axios from 'axios';
 import ScoreDialog from './ScoreDialog.vue';
 import ExportDialog from './ExportDialog.vue';
 import DefenseComment from './DefenseComment.vue';
 import TeacherScoresDialog from './TeacherScoresDialog.vue';
 
-interface Student {
-  id: string;
-  real_name: string;
-  title?: string;
-  type?: number;
-  advisor_name?: string;
-  scores?: DefenseScores;
-  summary?: string;
-  comment?: string;
-  generatingComment?: boolean;
-  teacherScores?: TeacherScore[];
-}
-
+// 接口定义
 interface DefenseScores {
   total: number;
   graded_by: string;
@@ -248,13 +237,95 @@ interface DefenseScores {
 interface TeacherScore {
   teacherId: string;
   teacherName: string;
-  scores: DefenseScores;
-  graded_at: string;
+  totalScore: number;
+  paperQuality?: number;
+  presentation?: number;
+  qaPerformance?: number;
+  designQuality1?: number;
+  designQuality2?: number;
+  designQuality3?: number;
+  designPresentation?: number;
+  designQa1?: number;
+  designQa2?: number;
+  comment?: string;
+  gradedAt?: string;
+}
+
+interface Student {
+  id: string;
+  real_name: string;
+  title?: string;
+  type?: number;
+  advisor_name?: string;
+  scores?: DefenseScores;
+  summary?: string;
+  comment?: string;
+  generatingComment?: boolean;
+  teacherScores?: TeacherScore[];
 }
 
 interface DefenseGroup {
-  groupId: string;
+  groupId: number;
   teacherId: string;
+  year?: number;
+  adminId?: string;
+  adminName?: string;
+  isDefenseLeader?: boolean;
+  totalStudentCount?: number;
+  scoredStudentCount?: number;
+}
+
+// 后端接口返回的数据结构
+interface ApiResponse<T> {
+  code: number;
+  message: string;
+  data: T;
+}
+
+interface DefenseGroupResponse {
+  groupId: number;
+  year: number;
+  adminId: string;
+  adminName: string;
+  isDefenseLeader: boolean;
+  teacherId: string;
+  totalStudentCount: number;
+  scoredStudentCount: number;
+}
+
+interface StudentDefenseResponse {
+  studentId: string;
+  studentName: string;
+  phone?: string;
+  email?: string;
+  instituteId?: number;
+  instituteName?: string;
+  defenseGroupId: number;
+  thesisTitle: string;
+  defenseType: number;
+  defenseTime?: string;
+  summary?: string;
+  reviewerId?: string;
+  reviewerName?: string;
+  advisorId?: string;
+  advisorName?: string;
+  guidanceYear?: number;
+  totalScore: number;
+  comment?: string;
+  gradedBy?: string;
+  gradedAt?: string;
+  paperQuality?: number;
+  presentation?: number;
+  qaPerformance?: number;
+  designQuality1?: number;
+  designQuality2?: number;
+  designQuality3?: number;
+  designPresentation?: number;
+  designQa1?: number;
+  designQa2?: number;
+  teacherScores?: TeacherScore[];
+  isScored?: boolean;
+  scoreStatus?: string;
 }
 
 export default defineComponent({
@@ -302,137 +373,129 @@ export default defineComponent({
     // 加载答辩小组信息
     const loadDefenseGroup = async () => {
       try {
-        const userInfo = localStorage.getItem('userInfo');
-        if (userInfo) {
-          const user = JSON.parse(userInfo);
-          console.log('loadDefenseGroup - 用户信息:', user);
-
-          if (user && user.isDefenseLeader) {
-            isDefenseLeader.value = true;
-            console.log('当前用户是答辩组长');
-          } else {
-            isDefenseLeader.value = false;
-          }
+        if (!currentTeacherId.value) {
+          ElMessage.warning('无法获取教师信息');
+          return;
         }
 
-        currentGroup.value = {
-          groupId: 'G2025001',
-          teacherId: currentTeacherId.value
-        };
+        const response = await axios.get<ApiResponse<DefenseGroupResponse>>(
+            `/defense/current-group?teacherId=${currentTeacherId.value}`
+        );
 
-        console.log('答辩组长状态:', isDefenseLeader.value);
-        ElMessage.success('已加载答辩小组信息');
-      } catch (error) {
+        if (response.data.code === 200) {
+          const groupInfo = response.data.data;
+          currentGroup.value = {
+            groupId: groupInfo.groupId,
+            teacherId: groupInfo.teacherId,
+            year: groupInfo.year,
+            adminId: groupInfo.adminId,
+            adminName: groupInfo.adminName,
+            isDefenseLeader: groupInfo.isDefenseLeader,
+            totalStudentCount: groupInfo.totalStudentCount,
+            scoredStudentCount: groupInfo.scoredStudentCount
+          };
+
+          // 更新答辩组长状态
+          isDefenseLeader.value = groupInfo.isDefenseLeader || false;
+
+          console.log('答辩小组信息:', currentGroup.value);
+          console.log('答辩组长状态:', isDefenseLeader.value);
+
+          // 加载学生列表
+          if (currentGroup.value.groupId) {
+            await loadGroupStudents();
+          }
+
+          ElMessage.success('已加载答辩小组信息');
+        } else {
+          ElMessage.warning(response.data.message || '未找到答辩小组信息');
+        }
+      } catch (error: any) {
         console.error('加载答辩小组信息失败:', error);
-        ElMessage.error('加载答辩小组信息失败');
+        if (error.response?.status === 404) {
+          ElMessage.warning('您当前没有被分配答辩小组');
+        } else {
+          ElMessage.error('加载答辩小组信息失败');
+        }
       }
     };
 
     // 加载小组成员
     const loadGroupStudents = async () => {
+      if (!currentGroup.value || !currentGroup.value.groupId || !currentTeacherId.value) {
+        ElMessage.warning('缺少必要参数');
+        return;
+      }
+
       loading.value = true;
       try {
-        // 模拟数据
-        groupStudents.value = [
-          {
-            id: '2023001',
-            real_name: '王小明',
-            title: '基于深度学习的图像识别系统研究',
-            type: 0,
-            summary: '本文研究了基于深度学习的图像识别技术，提出了改进的卷积神经网络模型，在ImageNet数据集上达到了95.2%的准确率。',
-            advisor_name: '张教授',
-            scores: {
-              total: 85,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              paper_quality: 35,
-              presentation: 25,
-              qa_performance: 25
-            },
-            comment: '该生论文选题具有较好的理论价值和实际意义，研究内容充实，方法得当。答辩过程中表述清晰，回答问题准确。建议在应用场景方面进一步拓展。'
-          },
-          {
-            id: '2023002',
-            real_name: '张小红',
-            title: '智能家居控制系统设计',
-            type: 1,
-            summary: '设计了一个基于物联网的智能家居控制系统，实现了灯光、温度、安防等设备的智能控制，系统运行稳定，用户体验良好。',
-            advisor_name: '王教授',
-            scores: {
-              total: 92,
-              graded_by: '李老师',
-              graded_at: '2025-06-15',
-              design_quality1: 14,
-              design_quality2: 13,
-              design_quality3: 14,
-              design_presentation: 23,
-              design_qa1: 14,
-              design_qa2: 14
-            },
-            comment: '设计内容完整，系统功能完善，界面友好。答辩过程中演示流畅，对技术细节掌握扎实。建议增加与其他智能设备的兼容性。'
-          },
-          {
-            id: '2023003',
-            real_name: '李小刚',
-            title: '云计算平台性能优化研究',
-            type: 0,
-            summary: '研究了云计算平台性能瓶颈问题，提出了基于负载预测的资源调度算法，提升了资源利用率15%。',
-            advisor_name: '刘教授',
-          }
-        ];
+        const response = await axios.get<ApiResponse<StudentDefenseResponse[]>>(
+            `/defense/group-students?groupId=${currentGroup.value.groupId}&teacherId=${currentTeacherId.value}`
+        );
 
-        // 如果是答辩组长，加载所有教师的打分情况
-        if (isDefenseLeader.value) {
-          await loadTeacherScoresForAllStudents();
+        if (response.data.code === 200) {
+          // 将后端数据转换为前端需要的格式
+          groupStudents.value = response.data.data.map(student => {
+            // 构建成绩对象
+            const scores: DefenseScores = {
+              total: student.totalScore || 0,
+              graded_by: student.gradedBy || '',
+              graded_at: student.gradedAt || '',
+              paper_quality: student.paperQuality,
+              presentation: student.presentation,
+              qa_performance: student.qaPerformance,
+              design_quality1: student.designQuality1,
+              design_quality2: student.designQuality2,
+              design_quality3: student.designQuality3,
+              design_presentation: student.designPresentation,
+              design_qa1: student.designQa1,
+              design_qa2: student.designQa2
+            };
+
+            // 将teacherScores转换为前端需要的格式
+            const teacherScores: TeacherScore[] = student.teacherScores?.map(score => ({
+              teacherId: score.teacherId,
+              teacherName: score.teacherName,
+              totalScore: score.totalScore,
+              paperQuality: score.paperQuality,
+              presentation: score.presentation,
+              qaPerformance: score.qaPerformance,
+              designQuality1: score.designQuality1,
+              designQuality2: score.designQuality2,
+              designQuality3: score.designQuality3,
+              designPresentation: score.designPresentation,
+              designQa1: score.designQa1,
+              designQa2: score.designQa2,
+              comment: score.comment,
+              gradedAt: score.gradedAt
+            })) || [];
+
+            return {
+              id: student.studentId,
+              real_name: student.studentName,
+              title: student.thesisTitle,
+              type: student.defenseType,
+              summary: student.summary,
+              advisor_name: student.advisorName,
+              scores: student.totalScore > 0 ? scores : undefined,
+              comment: student.comment,
+              teacherScores: teacherScores
+            };
+          });
+
+          ElMessage.success(`已加载 ${groupStudents.value.length} 名学生`);
+        } else {
+          ElMessage.error(response.data.message || '加载学生列表失败');
         }
-
-        ElMessage.success(`已加载 ${groupStudents.value.length} 名学生`);
-      } catch (error) {
-        ElMessage.error('加载学生列表失败');
+      } catch (error: any) {
+        console.error('加载学生列表失败:', error);
+        if (error.response?.status === 404) {
+          ElMessage.warning('该答辩小组暂无学生');
+        } else {
+          ElMessage.error('加载学生列表失败');
+        }
       } finally {
         loading.value = false;
-      }
-    };
-
-    // 加载所有教师的打分情况
-    const loadTeacherScoresForAllStudents = async () => {
-      try {
-        groupStudents.value.forEach(student => {
-          student.teacherScores = [
-            {
-              teacherId: 'T001',
-              teacherName: '李老师',
-              scores: student.scores || {
-                total: 0,
-                graded_by: '李老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            },
-            {
-              teacherId: 'T002',
-              teacherName: '王老师',
-              scores: {
-                total: student.scores ? student.scores.total - 2 : 0,
-                graded_by: '王老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            },
-            {
-              teacherId: 'T003',
-              teacherName: '张老师',
-              scores: {
-                total: student.scores ? student.scores.total + 3 : 0,
-                graded_by: '张老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            }
-          ];
-        });
-      } catch (error) {
-        console.error('加载教师打分情况失败:', error);
       }
     };
 
@@ -441,15 +504,56 @@ export default defineComponent({
       const student = groupStudents.value.find(s => s.id === studentId);
       if (student) {
         student.comment = comment;
-        // 这里可以添加保存到后端的逻辑
-        console.log(`更新学生 ${studentId} 的评语:`, comment);
+
+        // 调用后端接口保存评语
+        saveStudentComment(studentId, comment);
+      }
+    };
+
+    // 保存学生评语到后端
+    const saveStudentComment = async (studentId: string, comment: string) => {
+      if (!currentGroup.value?.groupId) {
+        ElMessage.warning('无法保存评语：缺少小组信息');
+        return;
+      }
+
+      try {
+        const response = await axios.post('/defense/update-comment', {
+          groupId: currentGroup.value.groupId,
+          studentId: studentId,
+          comment: comment,
+          teacherId: currentTeacherId.value
+        });
+
+        if (response.data.code === 200) {
+          console.log(`学生 ${studentId} 评语保存成功`);
+        } else {
+          console.warn(`学生 ${studentId} 评语保存失败:`, response.data.message);
+        }
+      } catch (error) {
+        console.error('保存评语失败:', error);
       }
     };
 
     // 处理生成评语
     const handleGenerateComment = async (data: { studentId: string, comment: string }) => {
-      console.log('生成评语:', data);
-      // 这里可以添加保存到后端的逻辑
+      try {
+        const response = await axios.post('/defense/generate-comment', {
+          studentId: data.studentId,
+          teacherId: currentTeacherId.value
+        });
+
+        if (response.data.code === 200) {
+          const generatedComment = response.data.data.comment;
+          updateStudentComment(data.studentId, generatedComment);
+          ElMessage.success('评语生成成功');
+        } else {
+          ElMessage.error('评语生成失败');
+        }
+      } catch (error) {
+        console.error('生成评语失败:', error);
+        ElMessage.error('生成评语失败');
+      }
     };
 
     // 查看其他教师评分
@@ -474,10 +578,23 @@ export default defineComponent({
     // 保存成绩
     const saveScores = async (scoresData: any) => {
       try {
-        ElMessage.success('成绩保存成功');
-        scoreDialog.value.visible = false;
-        loadGroupStudents();
+        const response = await axios.post('/defense/save-scores', {
+          groupId: currentGroup.value?.groupId,
+          studentId: scoresData.studentId,
+          scores: scoresData.scores,
+          teacherId: currentTeacherId.value
+        });
+
+        if (response.data.code === 200) {
+          ElMessage.success('成绩保存成功');
+          scoreDialog.value.visible = false;
+          // 重新加载学生列表以更新数据
+          await loadGroupStudents();
+        } else {
+          ElMessage.error(response.data.message || '成绩保存失败');
+        }
       } catch (error) {
+        console.error('保存成绩失败:', error);
         ElMessage.error('保存成绩失败');
       }
     };
@@ -491,9 +608,28 @@ export default defineComponent({
 
       try {
         loading.value = true;
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const response = await axios.get('/defense/export-student', {
+          params: {
+            studentId: student.id,
+            groupId: currentGroup.value?.groupId,
+            teacherId: currentTeacherId.value
+          },
+          responseType: 'blob' // 重要：指定响应类型为blob
+        });
+
+        // 创建下载链接
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${student.real_name}_成绩表.docx`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
         ElMessage.success(`已导出 ${student.real_name} 的成绩表`);
       } catch (error) {
+        console.error('导出失败:', error);
         ElMessage.error('导出失败');
       } finally {
         loading.value = false;
@@ -512,17 +648,33 @@ export default defineComponent({
     // 处理批量导出
     const handleExport = async (filename: string) => {
       try {
-        const scoredStudents = groupStudents.value.filter(student => student.scores?.total > 0);
-        console.log('导出参数:', {
-          teacherId: currentTeacherId.value,
-          groupId: currentGroup.value?.groupId,
-          filename: filename,
-          studentCount: scoredStudents.length
+        loading.value = true;
+        const response = await axios.get('/defense/export-group', {
+          params: {
+            groupId: currentGroup.value?.groupId,
+            teacherId: currentTeacherId.value,
+            filename: filename
+          },
+          responseType: 'blob'
         });
+
+        // 创建下载链接
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', filename || `答辩组${currentGroup.value?.groupId}_成绩表.zip`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
         ElMessage.success('已开始打包导出，请稍候下载');
         exportDialog.value.visible = false;
       } catch (error) {
+        console.error('导出失败:', error);
         ElMessage.error('导出失败');
+      } finally {
+        loading.value = false;
       }
     };
 
@@ -539,14 +691,18 @@ export default defineComponent({
       ).then(async () => {
         loading.value = true;
         try {
-          // 为每个学生生成评语
-          for (const student of groupStudents.value) {
-            if (!student.comment) {
-              // 这里可以调用批量生成评语的API
-              console.log('为', student.real_name, '生成评语');
-            }
+          const response = await axios.post('/defense/generate-all-comments', {
+            groupId: currentGroup.value?.groupId,
+            teacherId: currentTeacherId.value
+          });
+
+          if (response.data.code === 200) {
+            // 重新加载数据以获取新生成的评语
+            await loadGroupStudents();
+            ElMessage.success('批量生成评语完成');
+          } else {
+            ElMessage.error(response.data.message || '批量生成评语失败');
           }
-          ElMessage.success('批量生成评语完成');
         } catch (error) {
           console.error('批量生成评语失败:', error);
           ElMessage.error('批量生成评语失败');
@@ -587,23 +743,35 @@ export default defineComponent({
 
     // 初始化
     onMounted(() => {
-      const userInfo = localStorage.getItem('userInfo');
-      if (userInfo) {
-        try {
-          const user = JSON.parse(userInfo);
-          console.log('初始化 - 用户信息:', user);
+      // 从localStorage获取用户信息
+      try {
+        const userInfoStr = localStorage.getItem('userInfo');
+        if (userInfoStr) {
+          const userInfo = JSON.parse(userInfoStr);
+          console.log('初始化 - 用户信息:', userInfo);
 
-          currentTeacherId.value = user.id || '';
-          isDefenseLeader.value = user.isDefenseLeader || false;
+          // 根据你的数据结构，可能需要从不同的字段获取用户信息
+          const userData = userInfo.userInfo || userInfo;
+          currentTeacherId.value = userData.id || userData.teacherId || '';
 
-          console.log('用户是否为答辩组长:', isDefenseLeader.value);
-        } catch (error) {
-          console.error('解析用户信息失败:', error);
+          // 设置答辩组长状态
+          isDefenseLeader.value = userData.isDefenseLeader || false;
+
+          console.log('教师ID:', currentTeacherId.value);
+          console.log('是否为答辩组长:', isDefenseLeader.value);
+
+          // 加载答辩小组信息
+          loadDefenseGroup();
+        } else {
+          ElMessage.warning('请先登录');
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1500);
         }
+      } catch (error) {
+        console.error('解析用户信息失败:', error);
+        ElMessage.error('加载用户信息失败');
       }
-
-      loadDefenseGroup();
-      loadGroupStudents();
     });
 
     return {

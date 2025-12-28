@@ -22,7 +22,7 @@
           </div>
           <div class="info">
             <p class="name">{{ teacherInfo.name }}</p>
-            <p class="dept">{{ teacherInfo.department }}</p>
+            <p class="dept">{{ teacherInfo.instituteName }}</p>
             <p class="time">登录时间: {{ loginTime }}</p>
           </div>
         </div>
@@ -81,11 +81,11 @@ export default defineComponent({
   name: 'TeacherDashboard',
   setup() {
     const teacherInfo = ref({
-      name: '李老师',
-      department: '计算机科学与技术学院',
-      teacherId: 'T1001',
+      name: '',
+      instituteName: '',
+      teacherId: '',
       groupId: null as string | null,
-      isDefenseLeader: true
+      isDefenseLeader: false  // 初始设为false
     });
 
     const loginTime = ref('');
@@ -100,21 +100,35 @@ export default defineComponent({
     // 加载教师信息
     const loadTeacherInfo = () => {
       try {
-        // 从localStorage获取登录时保存的用户信息
-        const userStr = localStorage.getItem('userInfo');
+        // 尝试从不同的key获取用户信息
+        const userStr = localStorage.getItem('userInfo') ;
+
         if (userStr) {
           const userData = JSON.parse(userStr);
-          if (userData.userInfo) {
-            const userInfo = userData.userInfo;
-            // 更新teacherInfo，保留原有结构
-            teacherInfo.value.name = userInfo.realName || teacherInfo.value.name;
-            teacherInfo.value.department = userInfo.instituteName || teacherInfo.value.department;
-            teacherInfo.value.teacherId = userInfo.id || teacherInfo.value.teacherId;
-            teacherInfo.value.groupId = userInfo.groupId || null;
-            teacherInfo.value.isDefenseLeader = userInfo.isDefenseLeader || false;
 
-            console.log('教师信息加载完成，isDefenseLeader:', teacherInfo.value.isDefenseLeader);
+          let userInfo;
+          if (userData.data && userData.data.userInfo) {
+            userInfo = userData.data.userInfo;
+          } else if (userData.userInfo) {
+            userInfo = userData.userInfo;
+          } else if (userData.data) {
+            userInfo = userData.data;
+          } else {
+            userInfo = userData;
           }
+
+          // 更新teacherInfo
+          if (userInfo) {
+            teacherInfo.value.name = userInfo.realName || userInfo.name || '';
+            teacherInfo.value.instituteName = userInfo.instituteName || '';
+            teacherInfo.value.teacherId = userInfo.id || userInfo.teacherId || '';
+            teacherInfo.value.groupId = userInfo.groupId ? String(userInfo.groupId) : null;
+            teacherInfo.value.isDefenseLeader = Boolean(userInfo.isDefenseLeader);
+
+            console.log('教师信息已加载:', teacherInfo.value);
+          }
+        } else {
+          console.log('未找到用户信息，使用默认值');
         }
       } catch (error) {
         console.error('加载教师信息失败:', error);
@@ -142,7 +156,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* 原有样式保持不变 */
 .teacher-dashboard {
   height: 100vh;
   background-color: #f0f2f5;
