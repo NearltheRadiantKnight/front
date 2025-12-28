@@ -162,6 +162,17 @@ export default {
       this.selectedStudentId = student.id
       this.assignStudent()
     },
+
+    // 分页
+     handleSizeChange (size: number) {
+      this.pageSize = size;
+       this.fetchAvailableStudents();
+    },
+
+    handlePageChange(page: number){
+      this.currentPage = page;
+      this.fetchAvailableStudents();
+    }
   }
 }
 </script>

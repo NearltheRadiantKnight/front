@@ -44,7 +44,6 @@
                 :max="100"
                 :step="1"
                 :controls="false"
-                disabled
                 size="small"
                 style="width: 100px"
             />

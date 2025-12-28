@@ -57,7 +57,7 @@ interface ThesisForm {
 
 interface Props {
   visible: boolean;
-  studentId: string;
+  student_id: string;
   studentName: string;
   initialData?: ThesisForm;
 }
@@ -70,7 +70,7 @@ export default defineComponent({
       type: Boolean,
       required: true
     },
-    studentId: {
+    student_id: {
       type: String,
       required: true
     },
@@ -114,7 +114,7 @@ export default defineComponent({
           saving.value = true;
           // 触发确认事件，传递表单数据
           emit('confirm', {
-            studentId: props.studentId,
+            student_id: props.student_id,
             ...form
           });
         }

@@ -91,18 +91,15 @@ export default defineComponent({
     const loginTime = ref('');
 
     onMounted(() => {
-      console.log('教师Dashboard已加载');
       loginTime.value = new Date().toLocaleString();
       loadTeacherInfo();
     });
 
-    // 加载教师信息
     const loadTeacherInfo = () => {
       try {
         const userStr = localStorage.getItem('userInfo');
         if (userStr) {
           const userData = JSON.parse(userStr);
-          // 更新teacherInfo，保留原有结构
           teacherInfo.value.name = userData.realName || teacherInfo.value.name;
           teacherInfo.value.department = userData.instituteName || teacherInfo.value.department;
           teacherInfo.value.teacherId = userData.id || teacherInfo.value.teacherId;

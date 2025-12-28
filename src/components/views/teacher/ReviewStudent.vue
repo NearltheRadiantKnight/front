@@ -309,7 +309,6 @@ export default defineComponent({
 
           if (user && user.isDefenseLeader) {
             isDefenseLeader.value = true;
-            console.log('当前用户是答辩组长');
           } else {
             isDefenseLeader.value = false;
           }

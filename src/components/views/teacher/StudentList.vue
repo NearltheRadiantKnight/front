@@ -24,29 +24,22 @@
       >
         <!-- 学生基本信息 -->
         <el-table-column prop="id" label="学号" width="100" sortable />
-        <el-table-column prop="real_name" label="姓名" width="80" />
-        <el-table-column prop="institute_name" label="所属院系" width="150">
+        <el-table-column prop="realName" label="姓名" width="80" />
+        <el-table-column prop="instituteName" label="所属院系" width="150">
           <template #default="scope">
-            <el-tag size="small">{{ scope.row.institute_name }}</el-tag>
+            <el-tag size="small">{{ scope.row.instituteName }}</el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="tel" label="联系电话" width="110" />
         <el-table-column prop="email" label="邮箱" width="150" />
 
-        <!-- 指导年份 -->
-        <el-table-column prop="year" label="指导年份" width="90">
-          <template #default="scope">
-            <el-tag type="info" size="small">{{ scope.row.year }}年</el-tag>
-          </template>
-        </el-table-column>
-
         <!-- 题目和摘要信息 -->
         <el-table-column label="毕业答辩信息" min-width="220">
           <template #default="scope">
-            <div v-if="scope.row.title" class="thesis-info">
+            <div v-if="scope.row.defenseTitle" class="thesis-info">
               <div class="thesis-title">
                 <strong>题目：</strong>
-                <span>{{ scope.row.title }}</span>
+                <span>{{ scope.row.defenseTitle }}</span>
               </div>
               <div class="thesis-summary">
                 <strong>摘要：</strong>
@@ -82,7 +75,7 @@
         <!-- 答辩组信息 -->
         <el-table-column prop="gid" label="答辩组号" width="90">
           <template #default="scope">
-            <span v-if="scope.row.gid">{{ scope.row.gid }}</span>
+            <span v-if="scope.row.defenseGroupId">{{ scope.row.defenseGroupId }}</span>
             <span v-else class="no-data">-</span>
           </template>
         </el-table-column>
@@ -179,7 +172,7 @@
     <!-- 使用提取的对话框组件 -->
     <ThesisDialog
         v-model:visible="thesisDialog.visible"
-        :student-id="thesisDialog.studentId"
+        :student_id="thesisDialog.student_id"
         :student-name="thesisDialog.studentName"
         :initial-data="thesisForm"
         @confirm="saveThesisInfo"
@@ -188,7 +181,7 @@
 
     <ReviewerDialog
         v-model:visible="reviewerDialog.visible"
-        :student-id="reviewerDialog.studentId"
+        :student-id="reviewerDialog.student_id"
         :student-name="reviewerDialog.studentName"
         :teachers="instituteTeachers"
         :selected-reviewer-id="reviewerDialog.selectedReviewerId"
@@ -215,14 +208,15 @@ import { ArrowDown } from '@element-plus/icons-vue';
 import ThesisDialog from './ThesisDialog.vue';
 import ReviewerDialog from './ReviewerDialog.vue';
 import AddStudentDialog from './AddStudentDialog.vue';
+import request from "@/api";
 
 interface Student {
   id: string;
-  real_name: string;
+  realName: string;
   tel: string;
   email: string;
-  institute_id: number;
-  institute_name: string;
+  instituteId: number;
+  instituteName: string;
   year: number;
   gid?: number;
   type?: number; // 0: 论文, 1: 设计
@@ -252,47 +246,26 @@ export default defineComponent({
   },
 
   setup() {
-    const currentTeacherId = ref(''); // 从登录信息获取
+    const currentTeacherId = ref('');
+    const currentYear = ref('');
 
-    const studentList = ref<Student[]>([
-      {
-        id: '2023001',
-        real_name: '王小明',
-        tel: '13800138001',
-        email: 'wangxm@email.com',
-        institute_id: 1,
-        institute_name: '计算机与信息学院',
-        year: 2025,
-        gid: 101,
-        type: 0,
-        title: '基于深度学习的图像识别系统研究',
-        summary: '本文研究了基于深度学习的图像识别技术，提出了改进的卷积神经网络模型...',
-        time: '2025-06-15',
-        reviewer_id: '123456',
-        reviewer_name: '李老师',
-        status: 'defensing'
-      },
-      // ... 更多模拟数据
-    ]);
+    const studentList = ref<Student[]>([]);
 
     const loading = ref(false);
     const instituteTeachers = ref<Teacher[]>([
       { id: '123456', real_name: '王老师', role: 2 },
       { id: '234567', real_name: '张老师', role: 2 },
-      // ... 更多教师数据
     ]);
-
-    const availableYears = ref([new Date().getFullYear() - 1, new Date().getFullYear(), new Date().getFullYear() + 1]);
 
     const thesisDialog = ref({
       visible: false,
-      studentId: '',
+      student_id: '',
       studentName: ''
     });
 
     const reviewerDialog = ref({
       visible: false,
-      studentId: '',
+      student_id: '',
       studentName: '',
       selectedReviewerId: '',
       selectedReviewerName: ''
@@ -323,15 +296,16 @@ export default defineComponent({
 
     const loadStudentList = async () => {
       loading.value = true;
-      try {
-        // 调用后端API加载学生列表
-        // ...
-        ElMessage.success(`已加载 ${studentList.value.length} 名学生`);
-      } catch (error) {
-        ElMessage.error('加载学生列表失败');
-      } finally {
+      request.get("/teachers/getguidedstudents", {
+        params:{
+          teacher_id: currentTeacherId.value,
+          year: currentYear.value
+        }
+      }).then(res=>{
+        studentList.value = res.data;
+      }).finally(()=>{
         loading.value = false;
-      }
+      });
     };
 
     const loadInstituteTeachers = async () => {
@@ -343,23 +317,32 @@ export default defineComponent({
       }
     };
 
-    const searchStudent = async (studentId: string) => {
+    const searchStudent = async (student_id: string) => {
       try {
-        // 调用后端API搜索学生
-        // ...
+        request.get("/students/search",{
+          params:{
+            id: student_id
+          }
+        }).then(res=>{
+          if (res.code == 500)
+          {
+            ElMessage.error(res.message);
+            return;
+          }
+          studentSearchResult.value = res.data;
+        });
       } catch (error) {
         ElMessage.error('搜索学生失败');
       }
     };
 
     const addStudent = async (formData: any) => {
+      console.log(formData);
       try {
-        // 调用后端API添加指导学生
-        // ...
-        ElMessage.success('添加指导学生成功');
-        showAddStudentDialog.value = false;
-        loadStudentList();
-        studentSearchResult.value = null;
+        request.post("/teachers/addguidestudent", {...formData}).then(res=>{
+          showAddStudentDialog.value = false;
+          loadStudentList();
+        });
       } catch (error) {
         ElMessage.error('添加指导学生失败');
       }
@@ -368,10 +351,9 @@ export default defineComponent({
     const openThesisDialog = (student: Student) => {
       thesisDialog.value = {
         visible: true,
-        studentId: student.id,
-        studentName: student.real_name
+        student_id: student.id,
+        studentName: student.realName
       };
-
       if (student.title) {
         thesisForm.value = {
           type: student.type || 0,
@@ -380,7 +362,7 @@ export default defineComponent({
         };
       } else {
         thesisForm.value = {
-          type: 0,
+          type: student.type || 0,
           title: '',
           summary: ''
         };
@@ -388,22 +370,19 @@ export default defineComponent({
     };
 
     const saveThesisInfo = async (data: any) => {
-      try {
-        // 调用后端API保存题目摘要
-        // ...
+      console.log(data);
+      request.post("/students/settitle",{...data}).then(res=>{
         ElMessage.success('保存题目摘要成功');
         thesisDialog.value.visible = false;
         loadStudentList();
-      } catch (error) {
-        ElMessage.error('保存题目摘要失败');
-      }
+      });
     };
 
     const openSelectReviewerDialog = (student: Student) => {
       reviewerDialog.value = {
         visible: true,
-        studentId: student.id,
-        studentName: student.real_name,
+        student_id: student.id,
+        studentName: student.realName,
         selectedReviewerId: student.reviewer_id || '',
         selectedReviewerName: student.reviewer_name || ''
       };
@@ -424,7 +403,7 @@ export default defineComponent({
     // 删除学生确认
     const confirmDeleteStudent = (student: Student) => {
       ElMessageBox.confirm(
-          `确定要删除学生 "${student.real_name}" (${student.id}) 吗？此操作将解除您对该学生的指导关系。`,
+          `确定要删除学生 "${student.realName}" (${student.id}) 吗？此操作将解除您对该学生的指导关系。`,
           '删除确认',
           {
             confirmButtonText: '确定删除',
@@ -448,7 +427,7 @@ export default defineComponent({
       try {
         // 调用后端API删除指导学生关系
         // ...
-        ElMessage.success(`已成功删除学生 "${student.real_name}"`);
+        ElMessage.success(`已成功删除学生 "${student.realName}"`);
         loadStudentList();
       } catch (error) {
         ElMessage.error('删除学生失败');
@@ -485,6 +464,9 @@ export default defineComponent({
     };
 
     onMounted(() => {
+      const userData = JSON.parse(localStorage.getItem("userInfo") || "");
+      currentTeacherId.value = userData.id;
+      currentYear.value = userData.groupYear;
       loadStudentList();
       loadInstituteTeachers();
     });
@@ -492,7 +474,6 @@ export default defineComponent({
     return {
       studentList,
       loading,
-      availableYears,
       instituteTeachers,
       thesisDialog,
       reviewerDialog,
