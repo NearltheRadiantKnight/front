@@ -56,16 +56,29 @@ export const uploadTemplate = (file: File, templateId: number, userId: string) =
   formData.append('file', file);
   formData.append('templateId', templateId.toString());
   formData.append('userId', userId);
-  return uploadInstance.post('/templates/upload', formData);
+  console.log('上传模板参数:', { templateId, userId, fileName: file.name });
+
+  // 使用正确的API路径
+  return uploadInstance.post('/templates/upload', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 };
 
-// 验证模板占位符
-export const validateTemplate = (file: File, templateId: number) => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('templateId', templateId.toString());
-  return uploadInstance.post('/templates/validate', formData);
-};
+/// 验证模板占位符
+ export const validateTemplate = (file: File, templateId: number) => {
+   const formData = new FormData();
+   formData.append('file', file);
+   formData.append('templateId', templateId.toString());
+   console.log('验证模板参数:', { templateId, fileName: file.name });
+
+   return uploadInstance.post('/templates/validate', formData, {
+     headers: {
+       'Content-Type': 'multipart/form-data'
+     }
+   });
+ };
 
 // 上传签名
 export const uploadSignature = (file: File, userId: string) => {

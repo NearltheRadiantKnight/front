@@ -112,7 +112,7 @@
             <div class="template-meta">
               <div class="meta-item">
                 <i class="el-icon-time"></i>
-                <span>最后更新：{{ template.updatedAt || '暂无' }}</span>
+                <span>最后更新：{{ formatUpdateTime(template) }}</span>
               </div>
               <div class="meta-item">
                 <i class="el-icon-user"></i>
@@ -122,14 +122,22 @@
                 <i class="el-icon-document"></i>
                 <span>文件大小：{{ formatFileSize(template.fileSize) }}</span>
               </div>
+              <div class="meta-item" v-if="template.requiredPlaceholders">
+                <i class="el-icon-collection-tag"></i>
+                <span>必需占位符：{{ template.requiredPlaceholders.length }}个</span>
+              </div>
             </div>
 
             <!-- 占位符预览 -->
             <el-collapse v-model="template.activePlaceholders">
-              <el-collapse-item :title="`查看必需占位符（${template.requiredPlaceholders.length}个）`" :name="template.id">
+              <el-collapse-item :title="`查看必需占位符（${template.requiredPlaceholders?.length || 0}个）`" :name="template.id">
                 <div class="placeholders-preview">
                   <div v-for="placeholder in template.requiredPlaceholders" :key="placeholder" class="placeholder-tag">
                     <el-tag size="small" type="info">{{ placeholder }}</el-tag>
+                  </div>
+                  <div v-if="!template.requiredPlaceholders || template.requiredPlaceholders.length === 0" class="empty-placeholders">
+                    <i class="el-icon-info"></i>
+                    暂无必需占位符配置
                   </div>
                 </div>
                 <div class="placeholder-notice">
@@ -252,6 +260,7 @@
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { uploadTemplate, validateTemplate } from '@/api/upload'
+import { templateApi } from '@/api/template'
 
 export default {
   name: 'TemplateManagement',
@@ -363,64 +372,59 @@ export default {
       try {
         console.log('正在加载日期设置...');
 
-        // 先尝试从后端加载，如果失败使用默认值
+        // 使用 templateApi 获取日期配置
         try {
-          const response = await this.http.get('/api/date-config');
+          const response = await templateApi.getDateConfig();
           console.log('日期设置响应:', response);
 
-          if (response && response.data) {
-            response.data.forEach(item => {
-              if (item.config_key === 'defense_date') {
-                this.defenseDate = item.config_value;
-              } else if (item.config_key === 'evaluation_date') {
-                this.evaluationDate = item.config_value;
-              }
-            });
+          if (response && response.code === 200 && response.data) {
+            this.defenseDate = response.data.defense_date || '';
+            this.evaluationDate = response.data.evaluation_date || '';
             console.log('从后端加载日期成功');
-            return;
+          } else {
+            this.setDefaultDates();
           }
         } catch (error) {
           console.log('后端日期加载失败，使用默认日期:', error.message);
+          this.setDefaultDates();
         }
-
-        // 设置默认日期
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        this.defenseDate = todayStr;
-        this.evaluationDate = todayStr;
-        console.log('使用默认日期:', todayStr);
 
       } catch (error) {
         console.error('加载日期设置失败:', error);
-        // 设置默认日期
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        this.defenseDate = todayStr;
-        this.evaluationDate = todayStr;
+        this.setDefaultDates();
       }
+    },
+
+    // 新增辅助方法
+    setDefaultDates() {
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      this.defenseDate = todayStr;
+      this.evaluationDate = todayStr;
+      console.log('使用默认日期:', todayStr);
     },
 
     // 保存日期设置
     async saveDates() {
       try {
         this.savingDates = true;
-        console.log('保存日期:', { defense_date: this.defenseDate, evaluation_date: this.evaluationDate });
-
-        const response = await this.http.post('/api/date-config/save', {
-          defense_date: this.defenseDate,
-          evaluation_date: this.evaluationDate
+        console.log('保存日期:', {
+          defenseDate: this.defenseDate,
+          evaluationDate: this.evaluationDate
         });
 
+        // 使用 templateApi 保存日期配置
+        const response = await templateApi.saveDateConfig(this.defenseDate, this.evaluationDate);
         console.log('保存日期响应:', response);
 
-        if (response.code === 200) {
+        if (response && response.code === 200) {
           ElMessage.success('日期设置保存成功');
         } else {
-          ElMessage.error(response.message || '保存失败');
+          ElMessage.error(response?.message || '保存失败');
         }
       } catch (error) {
         console.error('保存日期设置失败:', error);
-        ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message || '网络错误'));
+        ElMessage.error('保存失败: ' + (error.message || '网络错误'));
       } finally {
         this.savingDates = false;
       }
@@ -447,13 +451,16 @@ export default {
     async applyDatesToAllTemplates() {
       try {
         this.applyingDates = true;
-        console.log('应用日期到模板:', { defenseDate: this.defenseDate, evaluationDate: this.evaluationDate });
-
-        const response = await this.http.post('/api/templates/apply-dates', {
+        console.log('应用日期到模板:', {
           defenseDate: this.defenseDate,
           evaluationDate: this.evaluationDate
         });
 
+        // 使用 templateApi 应用日期
+        const response = await templateApi.applyDatesToAllTemplates(
+          this.defenseDate,
+          this.evaluationDate
+        );
         console.log('应用日期响应:', response);
 
         if (response.code === 200) {
@@ -463,7 +470,7 @@ export default {
         }
       } catch (error) {
         console.error('应用日期失败:', error);
-        ElMessage.error('应用失败: ' + (error.response?.data?.message || error.message || '网络错误'));
+        ElMessage.error('应用失败: ' + (error.message || '网络错误'));
       } finally {
         this.applyingDates = false;
       }
@@ -471,41 +478,109 @@ export default {
 
     formatDate(date) {
       if (!date) return '';
-      const d = new Date(date);
-      return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+      try {
+        const d = new Date(date);
+        return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+      } catch (e) {
+        return date;
+      }
+    },
+
+    // 格式化更新时间
+    formatUpdateTime(template) {
+      if (template.updatedAt) {
+        try {
+          const date = new Date(template.updatedAt);
+          return date.toLocaleString('zh-CN');
+        } catch (e) {
+          return template.updatedAt;
+        }
+      }
+      return '暂无';
     },
 
     disabledDate(time) {
       return time.getTime() > Date.now();
     },
 
-    // 加载模板数据 - 简化版
+    // 加载模板数据
     async loadTemplates() {
       try {
         console.log('正在加载模板数据...');
 
-        // 尝试从后端加载模板
-        try {
-          const response = await this.http.get('/api/templates');
-          console.log('后端模板响应:', response);
+        // 使用 templateApi 获取模板列表
+        const response = await templateApi.getTemplates();
+        console.log('完整的模板响应:', response);
 
-          if (response.code === 200) {
-            this.templates = response.data.map(template => ({
+        if (response && response.code === 200 && response.data) {
+          console.log('模板数据详情:');
+          response.data.forEach((template, index) => {
+            console.log(`模板 ${index + 1} (${template.name}):`, {
+              id: template.id,
+              name: template.name,
+              placeholderKeys: template.placeholderKeys,
+              placeholderKeys类型: typeof template.placeholderKeys,
+              placeholderKeys长度: template.placeholderKeys?.length,
+              rawData: template
+            });
+          });
+
+          this.templates = response.data.map(template => {
+            const processedTemplate = {
               ...template,
-              activePlaceholders: []
-            }));
-            console.log('从后端加载模板成功，共', this.templates.length, '个模板');
-            return;
-          } else {
-            console.warn('模板响应格式异常:', response);
-          }
-        } catch (error) {
-          console.log('后端模板加载失败:', error.message);
+              activePlaceholders: [],
+              // 调试占位符处理
+              _debug: {
+                rawKeys: template.placeholderKeys,
+                rawType: typeof template.placeholderKeys
+              }
+            };
+
+            // 处理占位符字符串
+            let placeholders = [];
+
+            if (template.placeholderKeys) {
+              console.log(`处理模板 ${template.name} 的占位符:`, template.placeholderKeys);
+
+              // 尝试不同分隔符处理
+              if (typeof template.placeholderKeys === 'string') {
+                // 方法1: 尝试逗号分隔
+                placeholders = template.placeholderKeys.split(',').filter(p => p && p.trim());
+
+                if (placeholders.length === 0) {
+                  // 方法2: 尝试分号分隔
+                  placeholders = template.placeholderKeys.split(';').filter(p => p && p.trim());
+                }
+
+                if (placeholders.length === 0 && template.placeholderKeys.includes('{')) {
+                  // 方法3: 如果包含花括号，尝试解析为JSON数组
+                  try {
+                    const parsed = JSON.parse(template.placeholderKeys);
+                    if (Array.isArray(parsed)) {
+                      placeholders = parsed;
+                    }
+                  } catch (e) {
+                    // 不是JSON格式
+                  }
+                }
+              } else if (Array.isArray(template.placeholderKeys)) {
+                // 如果已经是数组，直接使用
+                placeholders = template.placeholderKeys;
+              }
+
+              console.log(`处理后占位符:`, placeholders);
+            }
+
+            processedTemplate.requiredPlaceholders = placeholders;
+            return processedTemplate;
+          });
+
+          console.log('处理后的模板列表:', this.templates);
+          console.log('加载模板成功，共', this.templates.length, '个模板');
+        } else {
+          console.warn('模板响应格式异常，使用默认模板:', response);
+          this.loadDefaultTemplates();
         }
-
-        // 使用默认模板数据
-        this.loadDefaultTemplates();
-
       } catch (error) {
         console.error('加载模板失败:', error);
         this.loadDefaultTemplates();
@@ -521,7 +596,14 @@ export default {
           description: '用于记录毕业设计答辩成绩的表格',
           type: 1,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_judge}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{design_quality_score1}}', '{{design_quality_score2}}',
+            '{{design_quality_score3}}', '{{defense_report_score}}',
+            '{{response_score1}}', '{{response_score2}}', '{{total_score}}',
+            '{{signature_judge}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -533,7 +615,14 @@ export default {
           description: '用于评定毕业设计成绩的表格',
           type: 2,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_department_head}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{advisor_score}}', '{{reviewer_score}}', '{{defense_score}}',
+            '{{advisor_calculated}}', '{{reviewer_calculated}}',
+            '{{defense_calculated}}', '{{final_score}}',
+            '{{signature_department_head}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -545,7 +634,13 @@ export default {
           description: '用于记录毕业论文答辩成绩的表格',
           type: 3,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_group_leader}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{paper_quality_score}}', '{{defense_report_score}}',
+            '{{response_score}}', '{{total_score}}', '{{defense_comment}}',
+            '{{signature_group_leader}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -557,7 +652,14 @@ export default {
           description: '用于评定毕业论文成绩的表格',
           type: 4,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_department_head}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{advisor_score}}', '{{reviewer_score}}', '{{defense_score}}',
+            '{{advisor_calculated}}', '{{reviewer_calculated}}',
+            '{{defense_calculated}}', '{{final_score}}',
+            '{{signature_department_head}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -569,7 +671,11 @@ export default {
           description: '答辩小组使用的统分表格',
           type: 5,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_judge}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{total_score}}', '{{signature_judge}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -581,7 +687,12 @@ export default {
           description: '毕业论文答辩无评语过程记录表',
           type: 6,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_judge}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{paper_quality_score}}', '{{defense_report_score}}',
+            '{{response_score}}', '{{total_score}}', '{{signature_judge}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -593,7 +704,14 @@ export default {
           description: '毕业设计答辩无评语过程记录表',
           type: 7,
           hasTemplate: false,
-          requiredPlaceholders: ['{{student_name}}', '{{student_id}}', '{{date_year}}', '{{signature_judge}}'],
+          requiredPlaceholders: [
+            '{{student_name}}', '{{student_id}}', '{{date_year}}',
+            '{{date_month}}', '{{date_day}}', '{{thesis_title}}',
+            '{{design_quality_score1}}', '{{design_quality_score2}}',
+            '{{design_quality_score3}}', '{{defense_report_score}}',
+            '{{response_score1}}', '{{response_score2}}', '{{total_score}}',
+            '{{signature_judge}}'
+          ],
           updatedAt: null,
           updatedBy: null,
           fileSize: null,
@@ -633,22 +751,40 @@ export default {
       // 验证占位符
       try {
         console.log('验证占位符，templateId:', template.id);
-        const validateResult = await validateTemplate(file, template.id);
+
+        // 使用 templateApi 验证模板
+        const validateResult = await templateApi.validateTemplate(file, template.id);
         console.log('占位符验证结果:', validateResult);
 
-        if (!validateResult.data.passed) {
-          const missing = validateResult.data.missingPlaceholders;
+        if (validateResult.code !== 200) {
+          const missing = validateResult.data?.missingPlaceholders;
           if (missing && missing.length > 0) {
             ElMessage.error(`模板缺少必需占位符: ${missing.join(', ')}`);
+          } else {
+            ElMessage.error(validateResult.message || '模板验证失败');
           }
           return false;
         }
       } catch (error) {
         console.error('验证占位符失败:', error);
-        ElMessage.warning('占位符验证失败，继续上传');
-        // 如果验证失败，仍然允许上传（依赖后端验证）
+        ElMessage.error('模板验证失败: ' + (error.message || '未知错误'));
+        return false;
       }
 
+      // 获取当前用户ID
+      const userInfo = localStorage.getItem('userInfo');
+      let userId = '';
+      if (userInfo) {
+        try {
+          const info = JSON.parse(userInfo);
+          userId = info.id || '';
+        } catch (e) {
+          console.error('解析用户信息失败:', e);
+          userId = 'unknown';
+        }
+      }
+
+      // 开始上传
       this.uploadingTemplate = template.id;
       this.showUploadDialog = true;
       this.uploadPercentage = 0;
@@ -662,12 +798,36 @@ export default {
         }
       }, 300);
 
-      // 上传完成后清理定时器
-      setTimeout(() => {
+      try {
+        // 使用 templateApi 上传模板
+        const result = await templateApi.uploadTemplate(file, template.id, userId);
         clearInterval(progressInterval);
-      }, 5000);
 
-      return true;
+        this.uploadPercentage = 100;
+        this.uploadStatus = 'success';
+        this.uploadMessage = '上传成功';
+
+        setTimeout(() => {
+          this.showUploadDialog = false;
+          if (result.code === 200) {
+            ElMessage.success(`模板"${template.name}"上传成功`);
+            // 重新加载模板列表
+            this.loadTemplates();
+          } else {
+            ElMessage.error(result.message || '上传失败');
+          }
+          this.uploadingTemplate = null;
+        }, 1000);
+
+      } catch (error) {
+        clearInterval(progressInterval);
+        this.showUploadDialog = false;
+        this.uploadingTemplate = null;
+        ElMessage.error('上传失败: ' + (error.message || '未知错误'));
+      }
+
+      // 返回false阻止默认上传
+      return false;
     },
 
     // 上传成功
@@ -702,20 +862,14 @@ export default {
     // 下载模板
     async downloadTemplate(template) {
       try {
-        const token = localStorage.getItem('token');
-        const url = `http://localhost:8080/api/templates/download/${template.id}`;
-        console.log('下载URL:', url);
+        // 使用 templateApi 获取下载链接
+        const downloadUrl = templateApi.downloadTemplate(template.id);
 
         // 创建隐藏的链接元素
         const link = document.createElement('a');
-        link.href = url;
+        link.href = downloadUrl;
         link.setAttribute('download', template.fileName || template.name + '.docx');
         link.style.display = 'none';
-
-        // 如果需要token，添加到URL参数
-        if (token) {
-          link.href = url + `?token=${encodeURIComponent(token)}`;
-        }
 
         document.body.appendChild(link);
         link.click();
@@ -744,7 +898,8 @@ export default {
         this.deletingTemplate = template.id;
         console.log('删除模板:', template.id);
 
-        const response = await this.http.delete(`/api/templates/${template.id}`);
+        // 使用 templateApi 删除模板
+        const response = await templateApi.deleteTemplate(template.id);
         console.log('删除响应:', response);
 
         if (response.code === 200) {
@@ -958,7 +1113,8 @@ export default {
 
 .template-meta {
   display: flex;
-  gap: 28px;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
@@ -968,9 +1124,10 @@ export default {
   gap: 8px;
   font-size: 13px;
   color: #909399;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: #f8f9fa;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .meta-item i {
@@ -978,15 +1135,22 @@ export default {
   color: #409EFF;
 }
 
+/* 占位符预览区域 */
 .placeholders-preview {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   padding: 16px;
   background: #f8f9fa;
   border-radius: 8px;
   border: 1px solid #e4e7ed;
   margin-top: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.placeholder-tag {
+  flex: 0 0 auto;
 }
 
 .placeholder-tag .el-tag {
@@ -996,6 +1160,25 @@ export default {
   border-radius: 4px;
   background: #fff;
   border: 1px solid #dcdfe6;
+  margin: 2px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty-placeholders {
+  text-align: center;
+  padding: 20px;
+  color: #909399;
+  font-size: 14px;
+  width: 100%;
+}
+
+.empty-placeholders i {
+  font-size: 24px;
+  margin-bottom: 10px;
+  color: #c0c4cc;
 }
 
 .placeholder-notice {
@@ -1010,6 +1193,20 @@ export default {
 
 .placeholder-notice i {
   margin-right: 8px;
+}
+
+/* 展开/收起样式 */
+.el-collapse-item__header {
+  font-weight: 600;
+  color: #409EFF;
+}
+
+.el-collapse-item__header i {
+  transition: transform 0.3s;
+}
+
+.el-collapse-item__wrap {
+  background-color: transparent;
 }
 
 .template-actions-container {
@@ -1199,6 +1396,16 @@ export default {
     padding: 20px;
   }
 
+  .placeholders-preview {
+    max-height: 150px;
+  }
+
+  .placeholder-tag .el-tag {
+    font-size: 11px;
+    padding: 3px 8px;
+    max-width: 150px;
+  }
+
   .button-group {
     flex-direction: column;
     gap: 10px;
@@ -1215,6 +1422,10 @@ export default {
   .template-meta {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .meta-item {
+    width: 100%;
   }
 
   .date-picker-group {
