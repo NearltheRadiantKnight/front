@@ -100,9 +100,11 @@
   </div>
 </template>
 
+<!-- file: DefenseComment.vue（修改script部分） -->
 <script lang="ts">
-import { defineComponent, ref, PropType } from 'vue';
+import { defineComponent, ref, PropType, watch } from 'vue';
 import { ElMessage } from 'element-plus';
+import request from "@/api"; // 添加导入
 
 interface Student {
   id: string;
@@ -148,35 +150,70 @@ export default defineComponent({
 
   setup(props, { emit }) {
     const dialogVisible = ref(false);
-    const comment = ref(props.student.comment || '');
+    const comment = ref('');
     const generating = ref(false);
     const saving = ref(false);
     const promptTemplate = ref(props.promptTemplate);
 
-    // 生成评语
+    // 监听student变化，重置comment
+    watch(() => props.student, (newStudent) => {
+      comment.value = newStudent.comment || '';
+    }, { immediate: true });
+
+    // 生成评语 - 调用真实AI接口
     const generateComment = async () => {
-      props.student.generatingComment = true;
+      if (props.student.generatingComment) return;
+
       try {
-        // 构建提示词
-        const prompt = promptTemplate.value
+        // 设置loading状态
+        emit('update:comment', '');
+
+        // 获取用户信息
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+          ElMessage.error('用户信息不存在');
+          return;
+        }
+        const user = JSON.parse(userInfo);
+
+        // 调用后端AI生成评语
+        const response = await request.post("/comments/generate/simple", {
+          studentId: props.student.id,
+          teacherId: user.id,
+          title: props.student.title,
+          summary: props.student.summary,
+          type: props.student.type,
+          commentType: 'defense',
+          prompt: promptTemplate.value
             .replace('{student_name}', props.student.real_name)
             .replace('{thesis_title}', props.student.title || '')
             .replace('{thesis_type}', getTypeText(props.student.type))
-            .replace('{thesis_summary}', props.student.summary || '');
+            .replace('{thesis_summary}', props.student.summary || '')
+        });
 
-        // 模拟调用大模型API生成评语
-        const generatedComment = `${props.student.real_name}同学的${getTypeText(props.student.type)}《${props.student.title}》选题具有一定的理论价值和实际意义。研究工作扎实，方法得当，数据分析合理。答辩过程中表述清晰，回答问题准确。建议在${props.student.type === 0 ? '理论深度' : '系统功能'}方面进一步完善。`;
+        if (response.data && response.data.code === 200) {
+          const generatedComment = response.data.data?.generatedComment;
+          if (generatedComment) {
+            // 保存到后端
+            await saveGeneratedComment(generatedComment);
 
-        // 触发事件更新评语
-        emit('update:comment', generatedComment);
-        emit('generate-comment', { studentId: props.student.id, comment: generatedComment });
+            // 更新前端显示
+            emit('update:comment', generatedComment);
+            emit('generate-comment', {
+              studentId: props.student.id,
+              comment: generatedComment
+            });
 
-        ElMessage.success('评语生成成功');
+            ElMessage.success('评语生成成功');
+          } else {
+            ElMessage.error('生成评语失败');
+          }
+        } else {
+          ElMessage.error(response.data?.message || '生成评语失败');
+        }
       } catch (error) {
         console.error('生成评语失败:', error);
         ElMessage.error('生成评语失败');
-      } finally {
-        props.student.generatingComment = false;
       }
     };
 
@@ -186,22 +223,44 @@ export default defineComponent({
       dialogVisible.value = true;
     };
 
-    // 调用AI生成评语
+    // 调用AI生成评语（对话框内）
     const generateCommentWithAI = async () => {
       generating.value = true;
       try {
-        // 构建提示词
-        const prompt = promptTemplate.value
+        // 获取用户信息
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+          ElMessage.error('用户信息不存在');
+          return;
+        }
+        const user = JSON.parse(userInfo);
+
+        // 调用后端AI生成评语
+        const response = await request.post("/comments/generate/simple", {
+          studentId: props.student.id,
+          teacherId: user.id,
+          title: props.student.title,
+          summary: props.student.summary,
+          type: props.student.type,
+          commentType: 'defense',
+          prompt: promptTemplate.value
             .replace('{student_name}', props.student.real_name)
             .replace('{thesis_title}', props.student.title || '')
             .replace('{thesis_type}', getTypeText(props.student.type))
-            .replace('{thesis_summary}', props.student.summary || '');
+            .replace('{thesis_summary}', props.student.summary || '')
+        });
 
-        // 模拟生成的评语
-        const generatedComment = `${props.student.real_name}同学的${getTypeText(props.student.type)}《${props.student.title}》选题具有一定的理论价值和实际意义。研究工作扎实，方法得当，数据分析合理。答辩过程中表述清晰，回答问题准确。建议在${props.student.type === 0 ? '理论深度' : '系统功能'}方面进一步完善。`;
-
-        comment.value = generatedComment;
-        ElMessage.success('AI评语生成成功');
+        if (response.data && response.data.code === 200) {
+          const generatedComment = response.data.data?.generatedComment;
+          if (generatedComment) {
+            comment.value = generatedComment;
+            ElMessage.success('AI评语生成成功');
+          } else {
+            ElMessage.error('生成评语失败');
+          }
+        } else {
+          ElMessage.error(response.data?.message || '生成评语失败');
+        }
       } catch (error) {
         console.error('调用AI生成评语失败:', error);
         ElMessage.error('生成评语失败');
@@ -210,21 +269,75 @@ export default defineComponent({
       }
     };
 
-    // 保存评语
+    // 保存评语到数据库
     const saveComment = async () => {
+      if (!comment.value.trim()) {
+        ElMessage.warning('评语不能为空');
+        return;
+      }
+
       saving.value = true;
       try {
-        // 触发事件保存评语
-        emit('update:comment', comment.value);
-        emit('generate-comment', { studentId: props.student.id, comment: comment.value });
+        // 获取用户信息
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+          ElMessage.error('用户信息不存在');
+          return;
+        }
+        const user = JSON.parse(userInfo);
 
-        ElMessage.success('评语保存成功');
-        dialogVisible.value = false;
+        // 调用后端保存评语
+        const response = await request.post("/comments/save/simple", {
+          studentId: props.student.id,
+          comment: comment.value,
+          aiComment: comment.value,
+          commentType: 'defense',
+          teacherId: user.id,
+          teacherName: user.real_name || user.realName
+        });
+
+        if (response.data && response.data.code === 200) {
+          // 触发事件更新评语
+          emit('update:comment', comment.value);
+          emit('generate-comment', {
+            studentId: props.student.id,
+            comment: comment.value
+          });
+
+          ElMessage.success('评语保存成功');
+          dialogVisible.value = false;
+        } else {
+          ElMessage.error(response.data?.message || '保存评语失败');
+        }
       } catch (error) {
         console.error('保存评语失败:', error);
         ElMessage.error('保存评语失败');
       } finally {
         saving.value = false;
+      }
+    };
+
+    // 保存生成的评语到数据库
+    const saveGeneratedComment = async (generatedComment: string) => {
+      try {
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) return;
+
+        const user = JSON.parse(userInfo);
+
+        await request.post('/comments/save/simple', {
+          studentId: props.student.id,
+          comment: generatedComment,
+          aiComment: generatedComment,
+          commentType: 'defense',
+          teacherId: user.id,
+          teacherName: user.real_name || user.realName
+        });
+
+        console.log('评语保存成功');
+      } catch (error) {
+        console.error('保存评语失败:', error);
+        throw error;
       }
     };
 
