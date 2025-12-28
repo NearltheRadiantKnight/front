@@ -24,7 +24,7 @@
 
             <el-table :data="teacherList" style="width: 100%" v-loading="loading">
                 <el-table-column prop="id" label="工号" width="100" />
-                <el-table-column prop="name" label="姓名" width="90" />
+                <el-table-column prop="realName" label="姓名" width="90" />
                 <el-table-column prop="phone" label="联系电话" width="120" />
                 <el-table-column prop="email" label="邮箱" width="180" />
 

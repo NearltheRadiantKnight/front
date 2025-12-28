@@ -6,26 +6,15 @@
       @close="handleClose"
   >
     <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-      <el-form-item label="学生学号" prop="studentId">
+      <el-form-item label="学生学号" prop="student_id">
         <el-input
-            v-model="form.studentId"
+            v-model="form.student_id"
             placeholder="请输入学生学号"
-            @blur="$emit('search-student', form.studentId)"
+            @blur="$emit('search-student', form.student_id)"
         />
         <div v-if="searchResult" class="search-result">
-          找到学生：{{ searchResult.real_name }} ({{ searchResult.institute_name }})
+          找到学生：{{ searchResult.realName }} ({{ searchResult.instituteName }})
         </div>
-      </el-form-item>
-
-      <el-form-item label="指导年份" prop="year">
-        <el-select v-model="form.year" placeholder="请选择指导年份">
-          <el-option
-              v-for="year in availableYears"
-              :key="year"
-              :label="`${year}年`"
-              :value="year"
-          />
-        </el-select>
       </el-form-item>
     </el-form>
 
@@ -46,24 +35,19 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, ref } from 'vue';
-import { FormInstance, FormRules } from 'element-plus';
+import {defineComponent, onMounted, reactive, ref} from 'vue';
+import type {FormInstance, FormRules} from 'element-plus';
 
 interface StudentSearchResult {
   id: string;
-  real_name: string;
-  institute_name: string;
+  realName: string;
+  instituteName: string;
 }
 
 interface AddStudentForm {
-  studentId: string;
+  student_id: string;
+  teacher_id: string;
   year: number;
-}
-
-interface Props {
-  visible: boolean;
-  availableYears: number[];
-  searchResult?: StudentSearchResult | null;
 }
 
 export default defineComponent({
@@ -73,10 +57,6 @@ export default defineComponent({
     visible: {
       type: Boolean,
       required: true
-    },
-    availableYears: {
-      type: Array as () => number[],
-      default: () => [2024, 2025, 2026]
     },
     searchResult: {
       type: Object as () => StudentSearchResult | null,
@@ -89,15 +69,17 @@ export default defineComponent({
   setup(props, { emit }) {
     const formRef = ref<FormInstance>();
     const saving = ref(false);
+    const currentyear = ref(0);
+    const teacher_id = ref('');
 
     const form = reactive<AddStudentForm>({
-      studentId: '',
-      year: props.availableYears[0] || new Date().getFullYear()
+      student_id: '',
+      teacher_id: teacher_id.value,
+      year: currentyear.value
     });
 
     const rules: FormRules = {
-      studentId: [{ required: true, message: '请输入学生学号', trigger: 'blur' }],
-      year: [{ required: true, message: '请选择指导年份', trigger: 'change' }]
+      studentId: [{ required: true, message: '请输入学生学号', trigger: 'blur' }]
     };
 
     const handleConfirm = async () => {
@@ -107,7 +89,8 @@ export default defineComponent({
         const valid = await formRef.value.validate();
         if (valid && props.searchResult) {
           saving.value = true;
-          // 触发确认事件，传递表单数据
+          form.teacher_id = teacher_id.value;
+          form.year = currentyear.value;
           emit('confirm', {
             ...form
           });
@@ -129,10 +112,16 @@ export default defineComponent({
     const resetForm = () => {
       if (formRef.value) {
         formRef.value.resetFields();
-        form.studentId = '';
-        form.year = props.availableYears[0] || new Date().getFullYear();
+        form.student_id = '';
+        form.teacher_id = teacher_id.value;
+        form.year = currentyear.value;
       }
     };
+    onMounted(()=>{
+      const userData = JSON.parse(localStorage.getItem("userInfo") || "");
+      currentyear.value = userData.groupYear;
+      teacher_id.value = userData.id;
+    });
 
     return {
       formRef,

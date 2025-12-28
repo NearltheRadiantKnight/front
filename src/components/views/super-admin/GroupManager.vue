@@ -12,7 +12,6 @@
         :loading="loading"
         @add-group="showAddGroupDialog"
         @edit-group="handleEditGroup"
-        @manage-students="handleManageStudents"
         @view-students="handleViewStudents"
         @delete-group="handleDeleteGroup"
     />
@@ -46,7 +45,6 @@ export default {
   components: {
     GroupList,
     GroupFormDialog,
-    StudentAssignmentDialog,
     StudentListDialog
   },
   props: {
@@ -109,7 +107,6 @@ export default {
       this.loading = true
 
       request.get("/groups/all?year="+this.year.year).then(res=>{
-        console.log(res.data)
         this.groups = res.data;
       }).finally(this.loading = false);
 
@@ -118,7 +115,7 @@ export default {
     async fetchTeachers() {
       const userInfo = localStorage.getItem('userInfo');
       const info = JSON.parse(userInfo);
-      request.get("/teachers/list?institute_id="+info.InstId).then(res=>{
+      request.get("/teachers/list").then(res=>{
         this.teacherList = res.data;
       });
     },
@@ -162,21 +159,14 @@ export default {
       }
     },
 
-    // 学生操作
-    handleManageStudents(group) {
-      this.selectedGroup = group
-      this.studentDialogVisible = true
-    },
-
     handleViewStudents(group) {
       this.selectedGroup = group
       this.studentListDialogVisible = true
     },
 
-    handleStudentAssigned() {
-      // 刷新答辩组数据
-      this.fetchGroups()
-      this.$message.success('学生分配成功')
+    handleAssignStudent(group) {
+      this.selectedGroup = group;
+      this.studentDialogVisible = true;
     },
 
     handleStudentRemoved() {
