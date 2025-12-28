@@ -60,8 +60,8 @@
           :default-sort="{prop: 'id', order: 'ascending'}"
       >
         <!-- 学生基本信息 -->
-        <el-table-column prop="stu_id" label="学号" width="100" sortable />
-        <el-table-column prop="realName" label="姓名" width="80" />
+        <el-table-column prop="id" label="学号" width="100" sortable />
+        <el-table-column prop="real_name" label="姓名" width="80" />
 
         <!-- 题目信息 -->
         <el-table-column label="题目" min-width="180">
@@ -327,65 +327,118 @@ export default defineComponent({
     // 加载小组成员
     const loadGroupStudents = async () => {
       loading.value = true;
-      request.get("/groups/studentlist", {
-        params:{
-          group_id: currentGroup.value.groupId
-        }
-      }).then(res=>{
-        groupStudents.value = res.data;
-      }).finally(()=>loading.value = false);
       try {
+        const res = await request.get("/groups/studentlist", {
+          params: {
+            group_id: currentGroup.value?.groupId
+          }
+        });
+
+        // 处理返回的学生数据
+        groupStudents.value = res.data.map(student => {
+          console.log('处理学生:', student.realName, 'teacher_scores:', student.teacher_scores); // 调试日志
+
+          const teacherScores = parseTeacherScores(student.teacher_scores, student.type);
+
+          // 构建学生对象
+          const studentObj: Student = {
+            id: student.stu_id,
+            real_name: student.realName,
+            title: student.title,
+            type: student.type,
+            teacherName: student.teacherName,
+            teacherScores: teacherScores,
+            scores: {
+              total: student.total_score || 0,
+              paper_quality: student.paper_quality || 0,
+              presentation: student.presentation || 0,
+              qa_performance: student.qa_performance || 0,
+              design_quality1: student.design_quality1 || 0,
+              design_quality2: student.design_quality2 || 0,
+              design_quality3: student.design_quality3 || 0,
+              design_presentation: student.design_presentation || 0,
+              design_qa1: student.design_qa1 || 0,
+              design_qa2: student.design_qa2 || 0,
+              graded_by: student.graded_by || '',
+              graded_at: student.time || new Date().toISOString()
+            }
+          };
+
+          return studentObj;
+        });
 
         if (isDefenseLeader.value) {
-          await loadTeacherScoresForAllStudents();
+          console.log('答辩组长模式，教师评分数据已加载');
         }
 
       } catch (error) {
+        console.error('加载学生列表失败:', error);
         ElMessage.error('加载学生列表失败');
       } finally {
         loading.value = false;
       }
     };
 
-    // 加载所有教师的打分情况
-    const loadTeacherScoresForAllStudents = async () => {
+    // 解析教师评分数据
+    const parseTeacherScores = (teacherScoresString: string, studentType?: number) => {
+      if (!teacherScoresString || teacherScoresString === '') {
+        return [];
+      }
+
       try {
-        groupStudents.value.forEach(student => {
-          student.teacherScores = [
-            {
-              teacherId: 'T001',
-              teacherName: '李老师',
-              scores: student.scores || {
-                total: 0,
-                graded_by: '李老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            },
-            {
-              teacherId: 'T002',
-              teacherName: '王老师',
-              scores: {
-                total: student.scores ? student.scores.total - 2 : 0,
-                graded_by: '王老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            },
-            {
-              teacherId: 'T003',
-              teacherName: '张老师',
-              scores: {
-                total: student.scores ? student.scores.total + 3 : 0,
-                graded_by: '张老师',
-                graded_at: '2025-06-15'
-              },
-              graded_at: '2025-06-15'
-            }
-          ];
+        const parsedScores = JSON.parse(teacherScoresString);
+
+        if (!Array.isArray(parsedScores)) {
+          console.warn('teacher_scores 不是数组:', parsedScores);
+          return [];
+        }
+
+        return parsedScores.map(score => {
+          // 根据学生类型设置不同的评分字段
+          let scoresData: DefenseScores;
+
+          if (studentType === 1) {
+            scoresData = {
+              total: score.total_score || 0,
+              paper_quality: 0, // 毕业设计没有论文质量分
+              presentation: 0,  // 毕业设计没有答辩陈述分
+              qa_performance: 0, // 毕业设计没有回答问题分
+              design_quality1: score.design_quality1 || 0,
+              design_quality2: score.design_quality2 || 0,
+              design_quality3: score.design_quality3 || 0,
+              design_presentation: score.design_presentation || 0,
+              design_qa1: score.design_qa1 || 0,
+              design_qa2: score.design_qa2 || 0,
+              graded_by: score.teacher_name || '',
+              graded_at: score.graded_at || new Date().toISOString()
+            };
+          } else {
+            // 毕业论文：type === 0 或 2
+            scoresData = {
+              total: score.total_score || 0,
+              paper_quality: score.paper_quality || 0,
+              presentation: score.presentation || 0,
+              qa_performance: score.qa_performance || 0,
+              design_quality1: 0, // 毕业论文没有设计质量分
+              design_quality2: 0, // 毕业论文没有设计质量分
+              design_quality3: 0, // 毕业论文没有设计质量分
+              design_presentation: 0, // 毕业论文没有设计展示分
+              design_qa1: 0, // 毕业论文没有设计问答分
+              design_qa2: 0, // 毕业论文没有设计问答分
+              graded_by: score.teacher_name || '',
+              graded_at: score.graded_at || new Date().toISOString()
+            };
+          }
+
+          return {
+            teacherId: score.teacher_id || '',
+            teacherName: score.teacher_name || '',
+            scores: scoresData,
+          };
         });
       } catch (error) {
-        console.error('加载教师打分情况失败:', error);
+        console.error('解析 teacher_scores 失败:', error, '原始数据:', teacherScoresString);
+        return [];
       }
     };
 

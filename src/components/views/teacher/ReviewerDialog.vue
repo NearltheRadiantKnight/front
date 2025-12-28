@@ -131,7 +131,7 @@ export default defineComponent({
 
     const handleConfirm = async () => {
       saving.value = true;
-      // 触发确认事件，传递选择的评阅人信息
+      // 触发确认事件，传递选择的评分人信息
       emit('confirm', {
         studentId: props.studentId,
         reviewerId: selectedReviewerId.value,

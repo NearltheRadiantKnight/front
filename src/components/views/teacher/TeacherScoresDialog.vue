@@ -39,7 +39,7 @@
         </el-table-column>
 
         <!-- 评分详情 -->
-        <template v-if="student.type === 0">
+        <template v-if="student.type !== 1">
           <!-- 毕业论文评分项 -->
           <el-table-column label="论文质量" width="100" align="center">
             <template #default="scope">
@@ -136,12 +136,6 @@
           </template>
         </el-table-column>
 
-        <!-- 评分时间 -->
-        <el-table-column label="评分时间" width="150">
-          <template #default="scope">
-            {{ formatDate(scope.row.graded_at) }}
-          </template>
-        </el-table-column>
       </el-table>
 
       <!-- 统计信息 -->
@@ -242,13 +236,6 @@ export default defineComponent({
       set: (value) => emit('update:visible', value)
     });
 
-    // 格式化日期
-    const formatDate = (dateString: string) => {
-      if (!dateString) return '未设置';
-      const date = new Date(dateString);
-      return date.toLocaleString('zh-CN');
-    };
-
     // 获取论文类型标签样式
     const getTypeTagType = (type?: number) => {
       return type === 1 ? 'warning' : 'primary';
@@ -280,7 +267,6 @@ export default defineComponent({
 
     return {
       dialogVisible,
-      formatDate,
       getTypeTagType,
       getTypeText,
       calculateAverageScore,
