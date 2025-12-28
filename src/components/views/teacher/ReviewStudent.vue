@@ -400,9 +400,9 @@ export default defineComponent({
           if (studentType === 1) {
             scoresData = {
               total: score.total_score || 0,
-              paper_quality: 0, // 毕业设计没有论文质量分
-              presentation: 0,  // 毕业设计没有答辩陈述分
-              qa_performance: 0, // 毕业设计没有回答问题分
+              paper_quality: 0,
+              presentation: 0,
+              qa_performance: 0,
               design_quality1: score.design_quality1 || 0,
               design_quality2: score.design_quality2 || 0,
               design_quality3: score.design_quality3 || 0,
@@ -412,19 +412,19 @@ export default defineComponent({
               graded_by: score.teacher_name || '',
               graded_at: score.graded_at || new Date().toISOString()
             };
-          } else {
-            // 毕业论文：type === 0 或 2
+          } else if (studentType === 2){
+            // 毕业论文
             scoresData = {
               total: score.total_score || 0,
               paper_quality: score.paper_quality || 0,
               presentation: score.presentation || 0,
               qa_performance: score.qa_performance || 0,
-              design_quality1: 0, // 毕业论文没有设计质量分
-              design_quality2: 0, // 毕业论文没有设计质量分
-              design_quality3: 0, // 毕业论文没有设计质量分
-              design_presentation: 0, // 毕业论文没有设计展示分
-              design_qa1: 0, // 毕业论文没有设计问答分
-              design_qa2: 0, // 毕业论文没有设计问答分
+              design_quality1: 0,
+              design_quality2: 0,
+              design_quality3: 0,
+              design_presentation: 0,
+              design_qa1: 0,
+              design_qa2: 0,
               graded_by: score.teacher_name || '',
               graded_at: score.graded_at || new Date().toISOString()
             };
@@ -471,7 +471,12 @@ export default defineComponent({
     const openScoreDialog = (student: Student) => {
       scoreDialog.value = {
         visible: true,
-        student: student,
+        student: {
+          id: student.id,
+          real_name: student.real_name,
+          title: student.title,
+          type: student.type
+        },
         initialScores: student.scores || null,
         teacherScores: student.teacherScores || []
       };
@@ -480,10 +485,48 @@ export default defineComponent({
     // 保存成绩
     const saveScores = async (scoresData: any) => {
       try {
-        ElMessage.success('成绩保存成功');
-        scoreDialog.value.visible = false;
-        loadGroupStudents();
+        // 获取当前教师信息
+        const userInfo = localStorage.getItem('userInfo');
+        if (!userInfo) {
+          ElMessage.error('用户信息获取失败');
+          return;
+        }
+
+        const user = JSON.parse(userInfo);
+        const teacherId = user.id;
+
+        // 构建请求参数
+        const requestData = {
+          stu_id: scoresData.studentId, // 学生学号
+          teacher_id: teacherId, // 评分教师ID
+          group_id: currentGroup.value?.groupId, // 答辩小组ID
+          type: scoresData.type, // 论文类型
+          total_score: scoresData.total_score, // 总分
+          paper_quality: scoresData.paper_quality || 0,
+          presentation: scoresData.presentation || 0,
+          qa_performance: scoresData.qa_performance || 0,
+          design_quality1: scoresData.design_quality1 || 0,
+          design_quality2: scoresData.design_quality2 || 0,
+          design_quality3: scoresData.design_quality3 || 0,
+          design_presentation: scoresData.design_presentation || 0,
+          design_qa1: scoresData.design_qa1 || 0,
+          design_qa2: scoresData.design_qa2 || 0
+        };
+
+        const response = await request.post("/defense/save-score", requestData);
+
+        if (response.code === 200) {
+          ElMessage.success('成绩保存成功');
+          scoreDialog.value.visible = false;
+
+          // 重新加载学生列表以更新数据
+          await loadGroupStudents();
+        } else {
+          ElMessage.error(response.message || '保存成绩失败');
+        }
+
       } catch (error) {
+        console.error('保存成绩失败:', error);
         ElMessage.error('保存成绩失败');
       }
     };

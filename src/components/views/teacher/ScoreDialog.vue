@@ -5,17 +5,18 @@
       width="800px"
       :close-on-click-modal="false"
       :close-on-press-escape="false"
+      @close="handleDialogClose"
   >
     <!-- 学生基本信息 -->
     <div class="student-info">
       <div class="info-row">
         <div class="info-item">
           <span class="info-label">学号：</span>
-          <span class="info-value">{{ student?.stu_id }}</span>
+          <span class="info-value">{{ student?.id }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">姓名：</span>
-          <span class="info-value">{{ student?.realName }}</span>
+          <span class="info-value">{{ student?.real_name }}</span>
         </div>
         <div class="info-item">
           <span class="info-label">题目：</span>
@@ -33,21 +34,33 @@
     <!-- 评分表 -->
     <div class="score-form">
       <!-- 论文类型评分表 -->
-      <div v-if="student?.type === 0" class="paper-score-form">
+      <div v-if="student?.type === 2" class="paper-score-form">
         <div class="score-header">
           <h3>毕业论文答辩成绩评分表</h3>
-          <div class="total-score-input">
-            <span class="total-label">总分（自动计算）：</span>
-            <el-input-number
-                v-model="paperScores.total"
-                :min="0"
-                :max="100"
-                :step="1"
-                :controls="false"
-                size="small"
-                style="width: 100px"
-            />
-            <span class="score-unit">分</span>
+          <div class="total-score-control">
+            <div class="total-input-group">
+              <span class="total-label">总分：</span>
+              <el-input-number
+                  v-model="paperScores.total"
+                  :min="0"
+                  :max="100"
+                  :step="1"
+                  :controls="false"
+                  @change="autoDistributePaperScores"
+                  size="small"
+                  style="width: 100px"
+              />
+              <span class="score-unit">分</span>
+              <el-button
+                  type="primary"
+                  icon="el-icon-sort"
+                  @click="autoDistributePaperScores"
+                  size="small"
+                  style="margin-left: 20px;"
+              >
+                自动分配
+              </el-button>
+            </div>
           </div>
         </div>
 
@@ -145,16 +158,17 @@
           </div>
         </div>
 
-        <!-- 快速分配按钮 -->
-        <div class="quick-actions">
-          <el-button
-              type="text"
-              icon="el-icon-sort"
-              @click="autoDistributePaperScores"
+        <!-- 快速分配提示 -->
+        <div class="distribution-hint">
+          <el-alert
+              title="自动分配说明"
+              type="info"
+              :closable="false"
               size="small"
           >
-            自动分配总分
-          </el-button>
+            <p>点击"自动分配"按钮，系统将根据总分和权重比例自动分配各分项成绩。</p>
+            <p>各分项成绩满足：分项成绩 ≤ 分项最大分值，且总和等于填写的总分。</p>
+          </el-alert>
         </div>
       </div>
 
@@ -472,7 +486,7 @@ export default defineComponent({
     // 初始化数据
     const initializeScores = () => {
       if (props.initialScores) {
-        if (props.student?.type === 0) {
+        if (props.student?.type === 2) {
           // 论文类型
           paperScores.value = {
             total: props.initialScores.total || 0,
@@ -494,7 +508,7 @@ export default defineComponent({
         }
       } else {
         // 重置为初始状态
-        if (props.student?.type === 0) {
+        if (props.student?.type === 2) {
           paperScores.value = {
             total: 0,
             paper_quality: 0,
@@ -513,6 +527,7 @@ export default defineComponent({
           };
         }
       }
+
     };
 
     // 监听学生变化，重新初始化
@@ -640,7 +655,7 @@ export default defineComponent({
     // 处理确认
     const handleConfirm = () => {
       // 验证数据
-      if (props.student?.type === 0) {
+      if (props.student?.type === 2) {
         if (paperScores.value.total <= 0) {
           ElMessage.warning('请填写评分');
           return;
@@ -653,11 +668,18 @@ export default defineComponent({
 
         emit('confirm', {
           studentId: props.student?.id,
-          type: 0,
-          total: paperScores.value.total,
+          type: props.student?.type,
+          total_score: paperScores.value.total,
           paper_quality: paperScores.value.paper_quality,
           presentation: paperScores.value.presentation,
-          qa_performance: paperScores.value.qa_performance
+          qa_performance: paperScores.value.qa_performance,
+          // 毕业设计的字段设置为0
+          design_quality1: 0,
+          design_quality2: 0,
+          design_quality3: 0,
+          design_presentation: 0,
+          design_qa1: 0,
+          design_qa2: 0
         });
 
       } else if (props.student?.type === 1) {
@@ -691,7 +713,11 @@ export default defineComponent({
         emit('confirm', {
           studentId: props.student?.id,
           type: 1,
-          total: designScores.value.total,
+          total_score: designScores.value.total, // 后端期望的字段名是 total_score
+          // 毕业论文的字段设置为0
+          paper_quality: 0,
+          presentation: 0,
+          qa_performance: 0,
           design_quality1: designScores.value.design_quality1,
           design_quality2: designScores.value.design_quality2,
           design_quality3: designScores.value.design_quality3,
@@ -710,6 +736,11 @@ export default defineComponent({
       emit('update:visible', false);
     };
 
+    const handleDialogClose = () => {
+      emit('update:visible', false);
+      emit('cancel');
+    };
+
     return {
       paperScores,
       designScores,
@@ -721,7 +752,8 @@ export default defineComponent({
       getTypeTagType,
       getTypeText,
       handleConfirm,
-      handleCancel
+      handleCancel,
+      handleDialogClose
     };
   }
 });
