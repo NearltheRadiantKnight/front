@@ -68,7 +68,7 @@
             <span>模板与日期设置</span>
           </el-menu-item>
 
-          <el-menu-item index="/ai">
+          <el-menu-item index="/admin/ai">
             <i class="el-icon-cpu"></i>
             <span>AI配置</span>
           </el-menu-item>

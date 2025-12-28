@@ -73,7 +73,11 @@ const router = createRouter({
           name: 'SuperAdminTemplate',
           component: () => import('@/components/views/super-admin/TemplateManagement.vue')
         },
-        // 删除单独的日期设置路由，合并到模板管理页面
+        {
+          path: 'ai',
+          name: 'SuperAdminAIConfig',
+          component: () => import('@/components/views/super-admin/AIConfig.vue')
+        },
         {
           path: 'passwordModify',
           name: 'SuperAdminPasswordModify',

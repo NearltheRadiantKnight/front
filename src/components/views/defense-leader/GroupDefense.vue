@@ -25,7 +25,7 @@
         <!-- 学生信息 -->
         <el-table-column prop="studentId" label="学号" width="100" />
         <el-table-column prop="studentName" label="姓名" width="80" />
-        <el-table-column prop="instituteName" label="院系" width="120">
+        <el-table-column prop="instituteName" label="院系" width="150">
           <template #default="scope">
             <el-tag size="small">{{ scope.row.instituteName }}</el-tag>
           </template>
@@ -66,18 +66,8 @@
           </template>
         </el-table-column>
 
-        <!-- 最终成绩 -->
-        <el-table-column prop="finalScore" label="最终成绩" width="90">
-          <template #default="scope">
-            <span v-if="scope.row.finalScore">
-              {{ scope.row.finalScore.toFixed(1) }}
-            </span>
-            <span v-else class="no-data">-</span>
-          </template>
-        </el-table-column>
-
         <!-- 状态 -->
-        <el-table-column prop="status" label="状态" width="70">
+        <el-table-column prop="status" label="状态" width="130">
           <template #default="scope">
             <el-tag
                 size="small"
@@ -104,13 +94,7 @@
         >
           计算调节系数
         </el-button>
-        <el-button
-            type="success"
-            @click="calculateAllFinalScores"
-            :disabled="!hasCoefficients"
-        >
-          计算最终成绩
-        </el-button>
+
         <el-button
             type="warning"
             @click="exportSummaryTable"
@@ -137,7 +121,6 @@ interface GroupFirstStudent {
   groupScore: number;
   majorScore?: number;
   adjustmentCoefficient?: number;
-  finalScore?: number;
   saving: boolean;
 }
 
@@ -210,7 +193,6 @@ export default defineComponent({
     const getStatusTagType = (student: GroupFirstStudent) => {
       if (!student.majorScore) return 'info';
       if (!student.adjustmentCoefficient) return 'warning';
-      if (!student.finalScore) return 'primary';
       return 'success';
     };
 
@@ -218,7 +200,6 @@ export default defineComponent({
     const getStatusText = (student: GroupFirstStudent) => {
       if (!student.majorScore) return '待录入';
       if (!student.adjustmentCoefficient) return '待计算系数';
-      if (!student.finalScore) return '待计算最终成绩';
       return '已完成';
     };
 
@@ -270,9 +251,8 @@ export default defineComponent({
         //   }),
         // });
 
-        // 清除已计算的调节系数和最终成绩
+        // 清除已计算的调节系数
         student.adjustmentCoefficient = undefined;
-        student.finalScore = undefined;
 
         console.log(`学生 ${student.studentName} 的大组成绩已保存: ${student.majorScore}`);
       } catch (error) {
@@ -307,28 +287,6 @@ export default defineComponent({
       ElMessage.success(`已为 ${eligibleStudents.length} 名学生计算调节系数`);
     };
 
-    // 计算所有最终成绩
-    const calculateAllFinalScores = () => {
-      const eligibleStudents = groupFirstStudents.value.filter(
-          s => s.adjustmentCoefficient !== undefined
-      );
-
-      if (eligibleStudents.length === 0) {
-        ElMessage.warning('请先计算调节系数');
-        return;
-      }
-
-      eligibleStudents.forEach(student => {
-        const finalScore = student.groupScore * student.adjustmentCoefficient!;
-        student.finalScore = parseFloat(finalScore.toFixed(1));
-      });
-
-      // 调用后端API保存最终成绩
-      // await fetch(`/api/defense/final-scores`, {...});
-
-      ElMessage.success(`已为 ${eligibleStudents.length} 名学生计算最终成绩`);
-    };
-
     // 导出统分表
     const exportSummaryTable = () => {
       if (groupFirstStudents.value.length === 0) {
@@ -344,7 +302,6 @@ export default defineComponent({
         '小组成绩': student.groupScore.toFixed(1),
         '大组成绩': student.majorScore ? student.majorScore.toFixed(1) : '未录入',
         '调节系数': student.adjustmentCoefficient ? student.adjustmentCoefficient.toFixed(3) : '未计算',
-        '最终成绩': student.finalScore ? student.finalScore.toFixed(1) : '未计算',
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(exportData);
@@ -372,7 +329,6 @@ export default defineComponent({
       loadGroupFirstStudents,
       handleMajorScoreChange,
       calculateAllCoefficients,
-      calculateAllFinalScores,
       exportSummaryTable,
     };
   },

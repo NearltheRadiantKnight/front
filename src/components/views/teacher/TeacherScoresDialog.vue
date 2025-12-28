@@ -251,6 +251,7 @@ export default defineComponent({
       if (props.teacherScores.length === 0) return 0;
       const total = props.teacherScores.reduce((sum, item) => sum + (item.scores.total || 0), 0);
       return (total / props.teacherScores.length).toFixed(1);
+
     };
 
     // 计算最高分
