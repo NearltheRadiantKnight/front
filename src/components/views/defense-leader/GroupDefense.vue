@@ -2,11 +2,11 @@
   <div class="defense-summary-container">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h2 class="page-title">答辩小组统分表</h2>
-      <p class="page-subtitle">管理各小组第一名的成绩与调节系数</p>
+      <h2 class="page-title">大组答辩</h2>
+      <p class="page-subtitle">管理各小组第一名的大组答辩成绩与调节系数</p>
     </div>
 
-    <!-- 统分表 -->
+    <!-- 学生列表 -->
     <el-card class="summary-table-card">
       <el-table
           :data="groupFirstStudents"
@@ -111,6 +111,7 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import * as XLSX from 'xlsx';
+import request from "@/api";
 
 interface GroupFirstStudent {
   id: string;
@@ -129,56 +130,10 @@ export default defineComponent({
 
   setup() {
     const loading = ref(false);
-    const currentYear = ref(new Date().getFullYear());
+    const year = ref(localStorage.getItem('year'));
 
     // 各小组第一名数据
-    const groupFirstStudents = ref<GroupFirstStudent[]>([
-      {
-        id: '1',
-        groupId: 1,
-        studentId: '20230001',
-        studentName: '王小明',
-        instituteName: '计算机与信息学院',
-        groupScore: 88.5,
-        saving: false,
-      },
-      {
-        id: '2',
-        groupId: 2,
-        studentId: '20230002',
-        studentName: '李小红',
-        instituteName: '电子工程学院',
-        groupScore: 85.0,
-        saving: false,
-      },
-      {
-        id: '3',
-        groupId: 3,
-        studentId: '20230003',
-        studentName: '张伟',
-        instituteName: '机械工程学院',
-        groupScore: 82.0,
-        saving: false,
-      },
-      {
-        id: '4',
-        groupId: 4,
-        studentId: '20230004',
-        studentName: '刘芳',
-        instituteName: '材料科学与工程学院',
-        groupScore: 79.5,
-        saving: false,
-      },
-      {
-        id: '5',
-        groupId: 5,
-        studentId: '20230005',
-        studentName: '陈明',
-        instituteName: '经济管理学院',
-        groupScore: 91.0,
-        saving: false,
-      },
-    ]);
+    const groupFirstStudents = ref<GroupFirstStudent[]>([]);
 
     // 计算属性
     const hasMajorScores = computed(() => {
@@ -208,19 +163,26 @@ export default defineComponent({
       loading.value = true;
       try {
         // 调用后端API获取各小组第一名数据
-        // const response = await fetch(`/api/defense/group-first-students?year=${currentYear.value}`);
-        // const data = await response.json();
-        // groupFirstStudents.value = data.map((item: any) => ({
-        //   ...item,
-        //   saving: false,
-        // }));
+        const response = await request.get(`/defense/first-students?year=${year.value}`);
 
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        console.log('已加载小组第一名数据');
-      } catch (error) {
+        if (response.code === 200) {
+          groupFirstStudents.value = response.data.map((item: any) => ({
+            id: `${item.groupId}_${item.studentId}`,
+            groupId: item.groupId,
+            studentId: item.studentId,
+            studentName: item.studentName,
+            instituteName: item.instituteName,
+            groupScore: item.groupScore,
+            majorScore: item.majorScore,
+            adjustmentCoefficient: item.adjustmentCoefficient,
+            saving: false,
+          }));
+        } else {
+          ElMessage.error('加载数据失败: ' + response.message);
+        }
+      } catch (error: any) {
         console.error('加载数据失败:', error);
-        ElMessage.error('加载数据失败');
+        ElMessage.error('加载数据失败: ' + (error.message || '网络错误'));
       } finally {
         loading.value = false;
       }
@@ -240,24 +202,22 @@ export default defineComponent({
       student.saving = true;
       try {
         // 调用后端API保存大组答辩成绩
-        // await fetch(`/api/defense/major-score`, {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({
-        //     studentId: student.studentId,
-        //     groupId: student.groupId,
-        //     year: currentYear.value,
-        //     majorScore: student.majorScore,
-        //   }),
-        // });
+        const response = await request.post('/defense/save-major-score', {
+          groupId: student.groupId,
+          studentId: student.studentId,
+          majorScore: student.majorScore,
+        });
 
-        // 清除已计算的调节系数
-        student.adjustmentCoefficient = undefined;
-
-        console.log(`学生 ${student.studentName} 的大组成绩已保存: ${student.majorScore}`);
-      } catch (error) {
+        if (response.code === 200) {
+          // 清除已计算的调节系数
+          student.adjustmentCoefficient = undefined;
+          ElMessage.success('大组成绩保存成功');
+        } else {
+          ElMessage.error('保存失败: ' + response.message);
+        }
+      } catch (error: any) {
         console.error('保存大组答辩成绩失败:', error);
-        ElMessage.error('保存大组答辩成绩失败');
+        ElMessage.error('保存大组答辩成绩失败: ' + (error.message || '网络错误'));
         // 恢复原来的值
         student.majorScore = undefined;
       } finally {
@@ -266,7 +226,7 @@ export default defineComponent({
     };
 
     // 计算所有调节系数
-    const calculateAllCoefficients = () => {
+    const calculateAllCoefficients = async () => {
       const eligibleStudents = groupFirstStudents.value.filter(
           s => s.majorScore !== undefined && s.groupScore > 0
       );
@@ -276,15 +236,20 @@ export default defineComponent({
         return;
       }
 
-      eligibleStudents.forEach(student => {
-        const coefficient = student.majorScore! / student.groupScore;
-        student.adjustmentCoefficient = parseFloat(coefficient.toFixed(3));
-      });
+      try {
+        const response = await request.post(`/defense/save-coefficients?year=${year.value}`);
 
-      // 调用后端API保存调节系数
-      // await fetch(`/api/defense/coefficients`, {...});
-
-      ElMessage.success(`已为 ${eligibleStudents.length} 名学生计算调节系数`);
+        if (response.code === 200) {
+          ElMessage.success(response.data.message || '计算成功');
+          // 重新加载数据
+          loadGroupFirstStudents();
+        } else {
+          ElMessage.error('计算失败: ' + response.message);
+        }
+      } catch (error: any) {
+        console.error('计算调节系数失败:', error);
+        ElMessage.error('计算调节系数失败: ' + (error.message || '网络错误'));
+      }
     };
 
     // 导出统分表
@@ -308,10 +273,24 @@ export default defineComponent({
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, '答辩小组统分表');
 
-      const fileName = `${currentYear.value}年答辩小组统分表.xlsx`;
+      const fileName = `${year.value}年答辩小组统分表.xlsx`;
       XLSX.writeFile(workbook, fileName);
 
       ElMessage.success('导出成功');
+    };
+
+    // 获取调节系数
+    const getAdjustmentCoefficient = async (groupId: number) => {
+      try {
+        const response = await request.get(`/defense/adjustment-coefficient?groupId=${groupId}`);
+        if (response.code === 200) {
+          return response.data;
+        }
+        return null;
+      } catch (error) {
+        console.error('获取调节系数失败:', error);
+        return null;
+      }
     };
 
     // 初始化
@@ -330,6 +309,7 @@ export default defineComponent({
       handleMajorScoreChange,
       calculateAllCoefficients,
       exportSummaryTable,
+      getAdjustmentCoefficient,
     };
   },
 });
