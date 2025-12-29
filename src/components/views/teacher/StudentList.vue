@@ -219,7 +219,7 @@ interface Student {
   instituteName: string;
   year: number;
   gid?: number;
-  type?: number; // 0: 论文, 1: 设计
+  type?: number; // 2: 论文, 1: 设计
   title?: string;
   summary?: string;
   time?: string;

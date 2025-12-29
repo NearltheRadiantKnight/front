@@ -20,7 +20,7 @@
                         <el-select v-model="year" style="width: 100%"
                                    @change="loadSettings">
                             <el-option
-                                    v-for="item in this.years"
+                                    v-for="item in years"
                                     :key="item"
                                     :label="item"
                                     :value="item"
@@ -221,6 +221,7 @@ export default defineComponent({
 
         const allyear = () => {
             request.get("/defense/allyear").then(res=>{
+              years.value = [];
               for (let i = 0; i < res.data.length; i++)
               {
                 years.value.push(res.data[i]["year"]);
@@ -369,6 +370,7 @@ export default defineComponent({
     },
     mounted() {
       this.allyear();
+      this.loadSettings();
     }
 });
 </script>

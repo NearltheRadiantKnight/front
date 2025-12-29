@@ -22,7 +22,7 @@
         @manage-groups="handleManageGroups"
         @edit-year="handleEditYear"
         @toggle-status="handleToggleYearStatus"
-        @delete="handleDeleteYear"
+        @delete-year="handleDeleteYear"
         @add-year="handleAddYear"
     />
 
@@ -50,7 +50,7 @@ import YearList from './YearList.vue'
 import YearFormDialog from './YearForm.vue'
 import GroupManager from './GroupManager.vue'
 import request from "@/api";
-import {ElMessage} from "element-plus";
+import {ElMessage, ElMessageBox} from "element-plus";
 
 export default {
   name: 'YearManagement',
@@ -132,6 +132,7 @@ export default {
 
     async handleSubmitYear(formData) {
         request.post("/defense/yearadd", {...formData}).then((res)=>{
+            this.fetchYears();
             ElMessage.success("年份创建成功");
         });
         this.isEditingYear = false;
@@ -139,25 +140,27 @@ export default {
 
     },
 
-    async handleToggleYearStatus(year, index) {
-      const newStatus = year.status === 'active' ? 'inactive' : 'active'
-      try {
-        await this.$api.defenseYear.updateStatus(year.year, newStatus)
-        this.years[index].status = newStatus
-        this.$message.success(`${year.year}年已${newStatus === 'active' ? '启用' : '停用'}`)
-      } catch (error) {
-        this.$message.error('操作失败')
-      }
-    },
-
     async handleDeleteYear(year, index) {
-      try {
-        await this.$api.defenseYear.delete(year.year)
-        this.years.splice(index, 1)
-        this.$message.success('删除成功')
-      } catch (error) {
-        this.$message.error('删除失败：' + error.message)
-      }
+      ElMessageBox.confirm(
+          `确定要删除年份${year.year}吗?`,
+          '确定删除',
+          {
+            confirmButtonText:'确认后果并删除',
+            cancelButtonText:'取消',
+            type:'warning'
+          }
+      ).then(()=>{
+        try {
+          request.post("/defense/yeardelete", {...year}).then(res=>{
+            this.fetchYears();
+          });
+          this.years.splice(index, 1)
+          this.$message.success('删除成功')
+        } catch (error) {
+          this.$message.error('删除失败：' + error.message)
+        }
+      });
+
     },
 
     updateVisible(visible){

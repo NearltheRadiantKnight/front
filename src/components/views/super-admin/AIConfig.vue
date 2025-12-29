@@ -627,19 +627,19 @@ export default {
 
         try {
           // 加载API配置
-          const apiResponse = await http.get('/api/ai/config')
+          const apiResponse = await http.get('/api/ai/config/load')
           if (apiResponse.data?.data) {
             Object.assign(this.aiConfig, apiResponse.data.data)
           }
 
           // 加载提示词配置
-          const promptsResponse = await http.get('/api/ai/prompts')
+          const promptsResponse = await http.get('/api/ai/prompts/load')
           if (promptsResponse.data?.data) {
             Object.assign(this.prompts, promptsResponse.data.data)
           }
 
           // 加载系统配置
-          const systemResponse = await http.get('/api/ai/system-config')
+          const systemResponse = await http.get('/api/ai/system-config/load')
           if (systemResponse.data?.data) {
             Object.assign(this.systemConfig, systemResponse.data.data)
           }

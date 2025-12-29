@@ -108,7 +108,7 @@
               <div class="view-action">
                 <el-button
                     type="text"
-                    size="mini"
+                    size="small"
                     icon="el-icon-view"
                     @click="viewTeacherScores(scope.row)"
                     :disabled="!scope.row.teacherScores || scope.row.teacherScores.length === 0"
@@ -121,7 +121,7 @@
         </el-table-column>
 
         <!-- 答辩组长特有功能：答辩小组评语 -->
-        <el-table-column label="答辩小组评语" width="180" v-if="isDefenseLeader">
+        <el-table-column label="答辩小组评语" width="100" v-if="isDefenseLeader">
           <template #default="scope">
             <DefenseComment
                 :student="scope.row"
@@ -145,7 +145,7 @@
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="160">
           <template #default="scope">
             <div class="action-buttons">
               <el-button
@@ -336,8 +336,6 @@ export default defineComponent({
 
         // 处理返回的学生数据
         groupStudents.value = res.data.map(student => {
-          console.log('处理学生:', student.realName, 'teacher_scores:', student.teacher_scores); // 调试日志
-
           const teacherScores = parseTeacherScores(student.teacher_scores, student.type);
 
           // 构建学生对象
@@ -348,6 +346,7 @@ export default defineComponent({
             type: student.type,
             teacherName: student.teacherName,
             teacherScores: teacherScores,
+            comment: student.comment,
             scores: {
               total: student.total_score || 0,
               paper_quality: student.paper_quality || 0,
@@ -512,7 +511,7 @@ export default defineComponent({
           design_qa1: scoresData.design_qa1 || 0,
           design_qa2: scoresData.design_qa2 || 0
         };
-
+        console.log(requestData);
         const response = await request.post("/defense/save-score", requestData);
 
         if (response.code === 200) {
@@ -640,12 +639,10 @@ export default defineComponent({
       if (userInfo) {
         try {
           const user = JSON.parse(userInfo);
-          console.log('初始化 - 用户信息:', user);
 
           currentTeacherId.value = user.id || '';
           isDefenseLeader.value = user.isDefenseLeader || false;
 
-          console.log('用户是否为答辩组长:', isDefenseLeader.value);
         } catch (error) {
           console.error('解析用户信息失败:', error);
         }

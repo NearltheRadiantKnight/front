@@ -22,7 +22,7 @@
     </div>
 
     <el-table :data="filteredGroups" v-loading="loading" style="margin-bottom: 20px;">
-      <el-table-column prop="admin_id" label="组长" width="150"></el-table-column>
+      <el-table-column prop="realName" label="组长" width="150"></el-table-column>
       <el-table-column label="学生数" width="120">
         <template #default="{ row }">
           <span :class="{ 'text-danger': row.student_count > row.max_student_count }">
