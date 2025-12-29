@@ -10,8 +10,8 @@
                     <el-input v-model="form.name" placeholder="请输入院系名称"/>
                 </el-form-item>
 
-                <el-form-item label="院长" prop="dean">
-                    <el-select placeholder="选择院长"
+                <el-form-item label="院系管理员" prop="dean">
+                    <el-select placeholder="选择院系管理员"
                                v-model="form.deanId"
                                clearable
                                filterable
@@ -89,7 +89,8 @@ export default defineComponent({
             request.post("/institute/add", {...this.form})
                     .then((res:any)=>{
                         if (res.code == 200) {
-                            this.$router.push("/institute");
+                            // 修改这里：跳转到正确的路由路径
+                            this.$router.push("/admin/institute");
                             ElMessage.success("院系创建成功");
                         }
                         else{
