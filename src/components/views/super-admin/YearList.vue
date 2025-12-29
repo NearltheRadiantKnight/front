@@ -38,29 +38,13 @@
               <i class="el-icon-s-management"></i> 管理答辩组
             </el-button>
 
-            <!-- 次要操作：更多选项 -->
-            <el-dropdown @command="handleDropdownCommand($event, row, $index)" size="small">
-              <el-button size="small">
-                <i class="el-icon-more"></i> 更多
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item
-                      :command="row.status === 'active' ? 'disable' : 'enable'"
-                  >
-                    <i
-                        :class="row.status === 'active' ? 'el-icon-close' : 'el-icon-check'"
-                        style="margin-right: 5px;"
-                    ></i>
-                    {{ row.status === 'active' ? '停用年份' : '启用年份' }}
-                  </el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>
-                    <i class="el-icon-delete" style="margin-right: 5px; color: #f56c6c;"></i>
-                    <span style="color: #f56c6c;">删除年份</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
+            <el-button
+                size="small"
+                type="primary"
+                @click="$emit('delete-year', row)"
+            >
+              <i class="el-icon-s-management"></i> 删除
+            </el-button>
           </div>
         </template>
       </el-table-column>

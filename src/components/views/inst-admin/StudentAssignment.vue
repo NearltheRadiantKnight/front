@@ -50,7 +50,7 @@
 <script lang="ts">
 import request from "@/api/index.ts";
 import {ref} from "vue";
-import type { Action } from 'element-plus'
+import {type Action, ElMessage} from 'element-plus'
 import {ElMessageBox} from "element-plus";
 
 export default {
@@ -136,15 +136,15 @@ export default {
         center: true,
         distinguishCancelAndClose: true
       }).then(()=>{
-        type = 0;
+        type = 2;
       }).catch((action : Action)=>{
         if (action === 'close'){
-          type = 2;
+          type = 0;
         }else {
           type = 1;
         }
       });
-      if (type > 1){
+      if (type === 0){
         return;
       }
       request.post('/students/assign-group', {
@@ -152,6 +152,7 @@ export default {
         group_id: this.group.id,
         type: type
       }).then(res=>{
+        ElMessage.success("分配成功");
         this.fetchAvailableStudents();
       }).catch(err=>{
         this.$message.error('分配失败' + err.message);

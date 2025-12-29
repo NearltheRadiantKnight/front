@@ -39,6 +39,7 @@ import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
 import StudentListDialog from './StudentList.vue'
 import request from "@/api/index.ts";
+import {ElMessage} from "element-plus";
 
 export default {
   name: 'GroupManager',
@@ -138,6 +139,11 @@ export default {
 
     async handleSubmitGroup(formData) {
       request.post("/groups/update", {...formData}).then(res=>{
+        if (res.code === 500)
+        {
+          ElMessage.error(res.message);
+          return;
+        }
         this.fetchGroups();
       });
     },
@@ -162,11 +168,6 @@ export default {
     handleViewStudents(group) {
       this.selectedGroup = group
       this.studentListDialogVisible = true
-    },
-
-    handleAssignStudent(group) {
-      this.selectedGroup = group;
-      this.studentDialogVisible = true;
     },
 
     handleStudentRemoved() {

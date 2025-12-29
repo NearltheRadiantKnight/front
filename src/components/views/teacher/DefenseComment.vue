@@ -2,22 +2,7 @@
   <div>
     <!-- 评语显示和操作区域 -->
     <div class="comment-section" v-if="isDefenseLeader">
-      <div v-if="student.comment" class="comment-content">
-        {{ student.comment }}
-      </div>
-      <div v-else class="no-comment">
-        无评语
-      </div>
       <div class="comment-actions">
-        <el-button
-            type="text"
-            size="mini"
-            icon="el-icon-magic-stick"
-            @click="generateComment"
-            :loading="student.generatingComment"
-        >
-          生成
-        </el-button>
         <el-button
             type="text"
             size="mini"
@@ -81,7 +66,7 @@
         <span class="dialog-footer">
           <el-button
               type="primary"
-              @click="generateCommentWithAI"
+              @click="generateCommentWithAI(student.type)"
               :loading="generating"
           >
             调用AI生成
@@ -89,7 +74,7 @@
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button
               type="success"
-              @click="saveComment"
+              @click="saveComment(comment)"
               :loading="saving"
           >
             保存评语
@@ -102,9 +87,9 @@
 
 <!-- file: DefenseComment.vue（修改script部分） -->
 <script lang="ts">
-import { defineComponent, ref, PropType, watch } from 'vue';
+import {defineComponent, ref, PropType, watch, onMounted} from 'vue';
 import { ElMessage } from 'element-plus';
-import request from "@/api"; // 添加导入
+import request from "@/api";
 
 interface Student {
   id: string;
@@ -160,8 +145,7 @@ export default defineComponent({
       comment.value = newStudent.comment || '';
     }, { immediate: true });
 
-    // 生成评语 - 调用真实AI接口
-    const generateComment = async () => {
+    const generateComment = async (type? : number) => {
       if (props.student.generatingComment) return;
 
       try {
@@ -176,8 +160,9 @@ export default defineComponent({
         }
         const user = JSON.parse(userInfo);
 
+        await loadpromptTemplate(type);
         // 调用后端AI生成评语
-        const response = await request.post("/comments/generate/simple", {
+        const response = await request.post("/ai/comment/generate", {
           studentId: props.student.id,
           teacherId: user.id,
           title: props.student.title,
@@ -185,19 +170,17 @@ export default defineComponent({
           type: props.student.type,
           commentType: 'defense',
           prompt: promptTemplate.value
-            .replace('{student_name}', props.student.real_name)
-            .replace('{thesis_title}', props.student.title || '')
-            .replace('{thesis_type}', getTypeText(props.student.type))
-            .replace('{thesis_summary}', props.student.summary || '')
+              .replace('{student_name}', props.student.real_name)
+              .replace('{thesis_title}', props.student.title || '')
+              .replace('{thesis_type}', getTypeText(props.student.type))
+              .replace('{thesis_summary}', props.student.summary || '')
+              .replace('{student_id}', props.student.id)
         });
-
-        if (response.data && response.data.code === 200) {
-          const generatedComment = response.data.data?.generatedComment;
+        if (response.data) {
+          const generatedComment = JSON.parse(response.data).output.choices[0].message.content;
           if (generatedComment) {
-            // 保存到后端
-            await saveGeneratedComment(generatedComment);
+            await saveComment(generatedComment);
 
-            // 更新前端显示
             emit('update:comment', generatedComment);
             emit('generate-comment', {
               studentId: props.student.id,
@@ -224,7 +207,7 @@ export default defineComponent({
     };
 
     // 调用AI生成评语（对话框内）
-    const generateCommentWithAI = async () => {
+    const generateCommentWithAI = async (type? : number) => {
       generating.value = true;
       try {
         // 获取用户信息
@@ -235,8 +218,9 @@ export default defineComponent({
         }
         const user = JSON.parse(userInfo);
 
+        await loadpromptTemplate(type);
         // 调用后端AI生成评语
-        const response = await request.post("/comments/generate/simple", {
+        const response = await request.post("/ai/comment/generate", {
           studentId: props.student.id,
           teacherId: user.id,
           title: props.student.title,
@@ -244,14 +228,15 @@ export default defineComponent({
           type: props.student.type,
           commentType: 'defense',
           prompt: promptTemplate.value
-            .replace('{student_name}', props.student.real_name)
-            .replace('{thesis_title}', props.student.title || '')
-            .replace('{thesis_type}', getTypeText(props.student.type))
-            .replace('{thesis_summary}', props.student.summary || '')
+              .replace('{student_name}', props.student.real_name)
+              .replace('{thesis_title}', props.student.title || '')
+              .replace('{thesis_type}', getTypeText(props.student.type))
+              .replace('{thesis_summary}', props.student.summary || '')
+              .replace('{student_id}', props.student.id)
         });
 
-        if (response.data && response.data.code === 200) {
-          const generatedComment = response.data.data?.generatedComment;
+        if (response.data) {
+          const generatedComment = JSON.parse(response.data).output.choices[0].message.content;
           if (generatedComment) {
             comment.value = generatedComment;
             ElMessage.success('AI评语生成成功');
@@ -269,78 +254,40 @@ export default defineComponent({
       }
     };
 
-    // 保存评语到数据库
-    const saveComment = async () => {
-      if (!comment.value.trim()) {
-        ElMessage.warning('评语不能为空');
-        return;
-      }
-
-      saving.value = true;
-      try {
-        // 获取用户信息
-        const userInfo = localStorage.getItem('userInfo');
-        if (!userInfo) {
-          ElMessage.error('用户信息不存在');
-          return;
-        }
-        const user = JSON.parse(userInfo);
-
-        // 调用后端保存评语
-        const response = await request.post("/comments/save/simple", {
-          studentId: props.student.id,
-          comment: comment.value,
-          aiComment: comment.value,
-          commentType: 'defense',
-          teacherId: user.id,
-          teacherName: user.real_name || user.realName
-        });
-
-        if (response.data && response.data.code === 200) {
-          // 触发事件更新评语
-          emit('update:comment', comment.value);
-          emit('generate-comment', {
-            studentId: props.student.id,
-            comment: comment.value
-          });
-
-          ElMessage.success('评语保存成功');
-          dialogVisible.value = false;
-        } else {
-          ElMessage.error(response.data?.message || '保存评语失败');
-        }
-      } catch (error) {
-        console.error('保存评语失败:', error);
-        ElMessage.error('保存评语失败');
-      } finally {
-        saving.value = false;
-      }
-    };
-
     // 保存生成的评语到数据库
-    const saveGeneratedComment = async (generatedComment: string) => {
+    const saveComment = async (comment: string) => {
       try {
         const userInfo = localStorage.getItem('userInfo');
         if (!userInfo) return;
 
         const user = JSON.parse(userInfo);
 
-        await request.post('/comments/save/simple', {
-          studentId: props.student.id,
-          comment: generatedComment,
-          aiComment: generatedComment,
+        await request.post('/ai/comment/save', {
+          gid: user.groupId,
+          student_id: props.student.id,
+          comment: comment,
           commentType: 'defense',
           teacherId: user.id,
           teacherName: user.real_name || user.realName
         });
-
-        console.log('评语保存成功');
+        ElMessage.success("评语保存成功");
       } catch (error) {
         console.error('保存评语失败:', error);
         throw error;
       }
     };
 
+    const loadpromptTemplate = async (type? : number) => {
+      request.get("/ai/prompts/load").then(res=>{
+        if (type === 1)
+        {
+          promptTemplate.value = res.data.designCommentPrompt;
+        }
+        else{
+          promptTemplate.value = res.data.thesisCommentPrompt;
+        }
+      });
+    }
     // 工具函数
     const getTypeTagType = (type?: number) => {
       return type === 1 ? 'warning' : 'primary';
@@ -357,11 +304,12 @@ export default defineComponent({
       saving,
       promptTemplate,
       generateComment,
-      editComment,
       generateCommentWithAI,
-      saveComment,
+      editComment,
       getTypeTagType,
-      getTypeText
+      getTypeText,
+      saveComment,
+      loadpromptTemplate
     };
   }
 });

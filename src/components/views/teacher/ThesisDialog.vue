@@ -8,7 +8,7 @@
     <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
       <el-form-item label="毕业类型" prop="type">
         <el-select v-model="form.type" placeholder="请选择毕业考核类型">
-          <el-option label="毕业论文" :value="0" />
+          <el-option label="毕业论文" :value="2" />
           <el-option label="毕业设计" :value="1" />
         </el-select>
       </el-form-item>

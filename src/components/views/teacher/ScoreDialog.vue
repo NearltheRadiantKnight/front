@@ -467,6 +467,11 @@ export default defineComponent({
       qa_performance: 0
     });
 
+    const visible = computed( {
+      get:()=> props.visible,
+      set:(value)=> emit('update:visible', value)
+    });
+
     // 设计类型评分数据
     const designScores = ref<DesignScores>({
       total: 0,
@@ -480,7 +485,7 @@ export default defineComponent({
 
     // 对话框标题
     const dialogTitle = computed(() => {
-      return `为 ${props.student?.realName} (${props.student?.stu_id}) 评分`;
+      return `为 ${props.student?.real_name} (${props.student?.id}) 评分`;
     });
 
     // 初始化数据
@@ -742,6 +747,7 @@ export default defineComponent({
     };
 
     return {
+      visible,
       paperScores,
       designScores,
       dialogTitle,

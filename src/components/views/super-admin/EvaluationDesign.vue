@@ -20,7 +20,7 @@
             <el-select v-model="year" style="width: 100%"
                        @change="loadSettings">
               <el-option
-                  v-for="item in years"
+                  v-for="item in this.years"
                   :key="item"
                   :label="item"
                   :value="item"
@@ -100,36 +100,15 @@ export default defineComponent({
       {id: 5, name: '回答问题的情况', content: '问题理解和回答准确性', weight: 15},
       {id: 6, name: '综合表现', content: '整体表现和态度', weight: 5}
     ]);
-    const saving = ref(false);
     const currentYear = new Date().getFullYear();
 
     const year = ref(currentYear);
-    const years = ref([2024, 2025]);
+    const years = ref([]);
 
     const totalWeight = computed(() => {
       return indicators.value.reduce((sum, item) => sum + item.weight, 0);
     });
 
-    const addIndicator = () => {
-      if (indicators.value.length >= 10) {
-        ElMessage.warning('最多只能设置10个评价指标');
-        return;
-      }
-      indicators.value.push({
-        id: Date.now(),
-        name: '',
-        content: '',
-        weight: 0
-      });
-    };
-
-    const removeIndicator = (index: number) => {
-      if (indicators.value.length <= 1) {
-        ElMessage.warning('至少需要保留1个评价指标');
-        return;
-      }
-      indicators.value.splice(index, 1);
-    };
 
     const applyDefaultIndicators = () => {
       indicators.value = [
