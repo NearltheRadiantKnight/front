@@ -19,12 +19,12 @@
         <el-table-column prop="id" label="登录用户名"/>
         <el-table-column label="所属院系" width="150">
           <template #default="scope">
-            {{ getInstituteName(scope.row.instituteId) }}
+            {{ getInstituteName(scope.row.InstId) }}
           </template>
         </el-table-column>
         <el-table-column prop="phone" label="联系电话" width="120"/>
         <el-table-column prop="email" label="邮箱"/>
-        <el-table-column label="操作" width="200">
+        <el-table-column label="操作" width="250">
           <template #default="scope">
             <el-button type="text" size="small" @click="editAdmin(scope.row)">编辑</el-button>
             <el-button type="text" size="small" @click="resetPassword(scope.row)">重置密码</el-button>
@@ -42,7 +42,7 @@
         <el-form-item label="登录账号" prop="id" required>
           <el-input v-model="form.id" placeholder="请输入登录账号" :disabled="isEditMode"/>
         </el-form-item>
-        <el-form-item label="所属院系" prop="instituteId" required>
+        <el-form-item label="所属院系" prop="Pwd" required>
           <el-select v-model="form.instituteId" placeholder="请选择所属院系" style="width: 100%">
             <el-option
                 v-for="item in instituteList"
@@ -149,7 +149,9 @@ export default defineComponent({
     },
     getInstituteName(instituteId: string) {
       const institute = this.instituteList.find(item => item.id === instituteId);
+      console.log('getInstituteName:', institute);
       return institute ? institute.name : '未知院系';
+
     },
     editAdmin(row: any) {
       this.dialogTitle = '编辑管理员';
