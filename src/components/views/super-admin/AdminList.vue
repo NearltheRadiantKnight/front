@@ -7,7 +7,7 @@
                     <div>
                         <el-input v-model="searchKeyword" placeholder="搜索管理员"
                                   style="width: 200px; margin-right: 10px;"/>
-                        <el-button type="primary" @click="$router.push('/adminadd')">
+                        <el-button type="primary" @click="$router.push('adminadd')">
                             <i class="el-icon-plus"></i> 添加管理员
                         </el-button>
                     </div>

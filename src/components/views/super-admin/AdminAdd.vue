@@ -21,14 +21,16 @@
                             v-model="form.institute"
                             placeholder="请选择所属院系"
                             style="width: 300px;"
+                            @change="handleInstituteChange"
                     >
                         <el-option
-                                v-for="institute in instituteList"
+                                v-for="institute in availableInstitutes"
                                 :key="institute.id"
                                 :label="institute.name"
                                 :value="institute.id"
                         />
                     </el-select>
+                    <div class="form-tip">只能选择未安排管理员的院系</div>
                 </el-form-item>
 
                 <!-- 登录信息 -->
@@ -81,18 +83,6 @@
                     />
                 </el-form-item>
 
-                <!-- 权限设置 -->
-                <el-divider content-position="left">权限设置</el-divider>
-                <el-form-item label="管理员权限">
-                    <el-checkbox-group v-model="form.permissions">
-                        <el-checkbox label="teacher_manage" name="type">教师管理</el-checkbox>
-                        <el-checkbox label="defense_manage" name="type">答辩管理</el-checkbox>
-                        <el-checkbox label="student_manage" name="type">学生管理</el-checkbox>
-                        <el-checkbox label="score_manage" name="type">成绩管理</el-checkbox>
-                        <el-checkbox label="template_manage" name="type">模板管理</el-checkbox>
-                    </el-checkbox-group>
-                </el-form-item>
-
                 <!-- 提交按钮 -->
                 <el-form-item>
                     <el-button type="primary" @click="submitForm" :loading="loading">
@@ -100,9 +90,6 @@
                     </el-button>
                     <el-button @click="resetForm">
                         <i class="el-icon-refresh"></i> 重置
-                    </el-button>
-                    <el-button @click="generateAccountInfo">
-                        <i class="el-icon-document"></i> 生成账号信息
                     </el-button>
                 </el-form-item>
             </el-form>
@@ -115,7 +102,7 @@
             </template>
             <div class="preview-content">
                 <p><strong>管理员姓名：</strong>{{ form.realName }}</p>
-                <p><strong>所属院系：</strong>{{ form.institute }}</p>
+                <p><strong>所属院系：</strong>{{ selectedInstituteName || form.institute }}</p>
                 <p><strong>登录用户名：</strong>{{ form.username }}</p>
                 <p><strong>登录密码：</strong>{{ form.password }}</p>
                 <p><strong>联系电话：</strong>{{ form.phone || '未填写' }}</p>
@@ -131,13 +118,11 @@
                 <p>✅ 管理员可在院系管理页面重置密码</p>
             </div>
         </el-card>
-
-
     </div>
 </template>
 
 <script lang="ts">
-import {defineComponent, ref, reactive, onMounted} from 'vue';
+import {defineComponent, ref, reactive, onMounted, computed} from 'vue';
 import {ElMessage, FormInstance} from 'element-plus';
 import request from '@/api';
 import {instituteApi} from "@/api/institute.ts";
@@ -146,36 +131,51 @@ import {userApi} from "@/api/user.ts";
 export default defineComponent({
     name: 'AdminAdd',
     methods:{
-        loadInstituteList(){
-            instituteApi.getInstitutes().then((res:any)=>{ this.instituteList=res.data})
+        loadAvailableInstitutes(){
+            // 加载所有未安排管理员的院系
+            instituteApi.getAvailableInstitutes().then((res:any)=>{
+                this.instituteList = res.data;
+            });
         },
     },
     mounted(): any {
-        this.loadInstituteList();
+        this.loadAvailableInstitutes();
     },
     setup() {
-
         const formRef = ref<FormInstance>();
         const loading = ref(false);
         const showPreview = ref(false);
+        const instituteList = ref([]);
 
         const form = reactive({
             realName: '',
-            institute: '',
+            institute: '',  // 改为单个院系ID
             username: '',
             password: '',
             confirmPassword: '',
             phone: '',
-            email: '',
-            permissions: ['teacher_manage', 'defense_manage', 'student_manage']
+            email: ''
         });
-
 
         const previewInfo = reactive({
             createTime: new Date().toLocaleString()
         });
 
-        const instituteList = ref([]);
+        // 计算属性：可用的院系（未安排管理员的）
+        const availableInstitutes = computed(() => {
+            return instituteList.value;
+        });
+
+        // 计算属性：选中的院系名称
+        const selectedInstituteName = computed(() => {
+            if (!form.institute) return '';
+            const institute = instituteList.value.find((inst: any) => inst.id === form.institute);
+            return institute ? institute.name : '';
+        });
+
+        const handleInstituteChange = (value: string) => {
+            console.log('选择的院系ID:', value);
+        };
 
         const validatePassword = (rule: any, value: string, callback: any) => {
             if (value !== form.password) {
@@ -228,38 +228,39 @@ export default defineComponent({
             if (!valid) return;
 
             loading.value = true;
-            userApi.createInstituteAdmin({...form}).then(
 
-            ).then((res:any)=>{
-                ElMessage.success({
-                    message: '院系管理员创建成功',
-                    duration: 3000
-                });
+            // 构造提交数据
+            const submitData = {
+                realName: form.realName,
+                institute: form.institute,  // 单个院系ID
+                username: form.username,
+                password: form.password,
+                phone: form.phone,
+                email: form.email
+            };
 
-                showPreview.value = true;
-                previewInfo.createTime = new Date().toLocaleString();
+            userApi.createInstituteAdmin(submitData).then((res:any)=>{
+                if (res.code === 200) {
+                    ElMessage.success({
+                        message: '院系管理员创建成功',
+                        duration: 3000
+                    });
+                    showPreview.value = true;
+                    previewInfo.createTime = new Date().toLocaleString();
+                } else {
+                    ElMessage.error(res.message || '创建失败');
+                }
             }).catch((error:any)=>{
-                ElMessage.error('创建失败，请重试');
-            }).finally(()=>{loading.value = false;});
+                ElMessage.error('创建失败，请重试: ' + error.message);
+            }).finally(()=>{
+                loading.value = false;
+            });
         };
 
         const resetForm = () => {
             if (!formRef.value) return;
             formRef.value.resetFields();
             showPreview.value = false;
-
-            // 重置为默认值
-            form.permissions = ['teacher_manage', 'defense_manage', 'student_manage'];
-        };
-
-        const generateAccountInfo = () => {
-            if (!form.realName || !form.institute || !form.username || !form.password) {
-                ElMessage.warning('请先填写基本信息');
-                return;
-            }
-
-            showPreview.value = true;
-            previewInfo.createTime = new Date().toLocaleString();
         };
 
         return {
@@ -267,12 +268,14 @@ export default defineComponent({
             form,
             previewInfo,
             instituteList,
+            availableInstitutes,
+            selectedInstituteName,
             rules,
             loading,
             showPreview,
             submitForm,
             resetForm,
-            generateAccountInfo
+            handleInstituteChange
         };
     }
 });

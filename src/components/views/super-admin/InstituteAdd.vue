@@ -10,40 +10,27 @@
                     <el-input v-model="form.name" placeholder="请输入院系名称"/>
                 </el-form-item>
 
-                <el-form-item label="院系管理员" prop="dean">
-                    <el-select placeholder="选择院系管理员"
-                               v-model="form.deanId"
-                               clearable
-                               filterable
+                <el-form-item label="院系管理员">
+                    <el-select
+                        placeholder="选择院系管理员（可选）"
+                        v-model="form.adminId"
+                        clearable
+                        filterable
+                        style="width: 100%"
                     >
-                        <el-option v-for="item in admins"
-                                   :label="item.realName"
-                                   :key="item.id"
-                                   :value="item.id"
-                                   @click.native="()=>{form.deanName=item.realName;}"
-                                   ></el-option>
+                        <el-option label="暂不分配管理员" :value="null"></el-option>
+                        <el-option
+                            v-for="item in admins"
+                            :label="item.realName"
+                            :key="item.id"
+                            :value="item.id"
+                        ></el-option>
                     </el-select>
-                </el-form-item>
-
-                <el-form-item label="联系电话" prop="phone">
-                    <el-input v-model="form.phone" placeholder="请输入联系电话"/>
-                </el-form-item>
-
-                <el-form-item label="邮箱地址" prop="email">
-                    <el-input v-model="form.email" placeholder="请输入邮箱地址"/>
-                </el-form-item>
-
-                <el-form-item label="办公地址" prop="address">
-                    <el-input v-model="form.address" placeholder="请输入办公地址"/>
-                </el-form-item>
-
-                <el-form-item label="院系简介" prop="description">
-                    <el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入院系简介"/>
+                    <div class="form-tip">创建院系时可以选择不分配管理员，后续可以再分配</div>
                 </el-form-item>
 
                 <el-form-item>
                     <el-button type="primary" @click="submitForm" :loading="loading">创建院系</el-button>
-                    <el-button @click="resetForm">重置</el-button>
                 </el-form-item>
             </el-form>
         </el-card>
@@ -52,91 +39,90 @@
             <h3>院系信息预览</h3>
             <div class="preview-content">
                 <p><strong>院系名称：</strong>{{ form.name || '未填写' }}</p>
-                <p><strong>院长：</strong>{{ form.deanName || '未填写' }}</p>
-                <p><strong>联系电话：</strong>{{ form.phone || '未填写' }}</p>
+                <p><strong>管理员：</strong>{{ selectedAdminName }}</p>
             </div>
         </div>
     </div>
 </template>
 
 <script lang="ts">
-import {defineComponent, ref} from 'vue';
-import {ElMessage, type FormInstance} from 'element-plus';
+import { defineComponent } from 'vue';
+import { ElMessage } from 'element-plus';
 import request from "@/api";
-import {userApi} from "@/api/user.ts";
+import { userApi } from "@/api/user.ts";
 
 export default defineComponent({
     name: 'InstituteAdd',
-    data(){
-        return{
-            formRef:ref<FormInstance>(),
-            loading : ref(false),
-            form : {
+    data() {
+        return {
+            formRef: null as any,
+            loading: false,
+            form: {
                 name: '',
-                deanName: '',
-                deanId:'',
-                phone: '',
-                email: '',
-                address: '',
-                description: ''
+                adminId: null as string | null
             },
-            admins:[]
+            admins: [] as any[],
+            rules: {
+                name: [
+                    { required: true, message: '请输入院系名称', trigger: 'blur' },
+                    { min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur' }
+                ]
+            }
+        };
+    },
+    computed: {
+        selectedAdminName(): string {
+            if (this.form.adminId === null || this.form.adminId === '') {
+                return '暂未分配';
+            }
+            const admin = this.admins.find((a: any) => a.id === this.form.adminId);
+            return admin ? admin.realName : '';
         }
     },
     methods: {
-        submitForm(){
-            this.loading = true;
-            request.post("/institute/add", {...this.form})
-                    .then((res:any)=>{
-                        if (res.code == 200) {
-                            // 修改这里：跳转到正确的路由路径
-                            this.$router.push("/admin/institute");
-                            ElMessage.success("院系创建成功");
-                        }
-                        else{
-                            ElMessage.error("创建失败");
-                        }
-                    }).catch(error=>{
-                ElMessage.error('创建失败');
-            }).finally(()=>{
+        async submitForm() {
+            try {
+                const formRef = this.$refs.formRef as any;
+                if (!formRef) return;
+
+                const valid = await formRef.validate();
+                if (!valid) {
+                    ElMessage.error('请填写必填项');
+                    return;
+                }
+
+                this.loading = true;
+
+                const requestData = {
+                    name: this.form.name,
+                    adminId: this.form.adminId
+                };
+
+                const res = await request.post("/institute/add", requestData);
+
+                if (res.code == 200) {
+                    ElMessage.success("院系创建成功");
+                    this.$router.push("/admin/institute");
+                } else {
+                    ElMessage.error("创建失败: " + res.message);
+                }
+            } catch (error: any) {
+                ElMessage.error('创建失败: ' + (error.message || '未知错误'));
+            } finally {
                 this.loading = false;
-            });
+            }
         },
-        resetForm() {
-            if (!this.formRef.value) return;
-            this.formRef.value.resetFields();
-        },
-        loadAdmin() {
-            userApi.getInstituteAdmins().then((res: any) => {
-                console.log(res.data)
-                this.admins = res.data
-            });
+        async loadAdmin() {
+            try {
+                const res = await userApi.getInstituteAdmins();
+                this.admins = res.data || [];
+            } catch (error) {
+                console.error('加载管理员列表失败:', error);
+            }
         }
     },
-    mounted(): any {
-      this.loadAdmin();
-    },
-    setup() {
-        const rules = {
-            name: [
-                {required: true, message: '请输入院系名称', trigger: 'blur'},
-                {min: 2, max: 50, message: '长度在 2 到 50 个字符', trigger: 'blur'}
-            ],
-            code: [
-                {required: true, message: '请输入院系代码', trigger: 'blur'},
-                {pattern: /^[A-Z]{2,6}$/, message: '请输入2-6位大写字母代码', trigger: 'blur'}
-            ],
-            email: [
-                {type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur'}
-            ],
-            phone: [
-                {pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur'}
-            ]
-        };
-
-        return {
-            rules,
-        };
+    mounted() {
+        this.loadAdmin();
     }
 });
 </script>

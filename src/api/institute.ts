@@ -39,5 +39,9 @@ export const instituteApi = {
   // 检查院系名称是否可用
   checkInstituteName: (name: string) => {
     return get('/institute/check-name', { name })
-  }
+  },
+    // 获取未安排管理员的院系
+    getAvailableInstitutes: () => {
+        return get("/institute/available");
+      }
 }
