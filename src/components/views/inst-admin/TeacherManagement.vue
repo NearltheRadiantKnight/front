@@ -330,7 +330,7 @@ export default defineComponent({
                     realName: addForm.value.name,
                     phone: addForm.value.phone || '',
                     email: addForm.value.email || '',
-                    instId: instituteId.value // 使用当前管理员的院系ID
+                    InstId: instituteId.value // 使用当前管理员的院系ID
                 };
 
                 console.log('发送创建教师请求数据:', requestData);

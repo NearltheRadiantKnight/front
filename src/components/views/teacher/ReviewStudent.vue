@@ -7,16 +7,16 @@
         <p class="page-subtitle">为您的答辩小组成员进行打分和成绩评定</p>
       </div>
       <div class="header-actions">
-        <!-- 答辩组长特有功能：生成评语 -->
-        <el-button
-            type="primary"
-            icon="el-icon-edit"
-            @click="generateAllComments"
-            :disabled="!isDefenseLeader || groupStudents.length === 0"
-            v-if="isDefenseLeader"
-        >
-          批量生成评语
-        </el-button>
+<!--        &lt;!&ndash; 答辩组长特有功能：生成评语 &ndash;&gt;-->
+<!--        <el-button-->
+<!--            type="primary"-->
+<!--            icon="el-icon-edit"-->
+<!--            @click="generateAllComments"-->
+<!--            :disabled="!isDefenseLeader || groupStudents.length === 0"-->
+<!--            v-if="isDefenseLeader"-->
+<!--        >-->
+<!--          批量生成评语-->
+<!--        </el-button>-->
       </div>
     </div>
 
@@ -526,34 +526,34 @@ export default defineComponent({
     };
 
     // 批量生成评语
-    const generateAllComments = async () => {
-      ElMessageBox.confirm(
-          '确定要为所有学生生成评语吗？',
-          '批量生成评语',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }
-      ).then(async () => {
-        loading.value = true;
-        try {
-          // 为每个学生生成评语
-          for (const student of groupStudents.value) {
-            if (!student.comment) {
-              // 这里可以调用批量生成评语的API
-              console.log('为', student.real_name, '生成评语');
-            }
-          }
-          ElMessage.success('批量生成评语完成');
-        } catch (error) {
-          console.error('批量生成评语失败:', error);
-          ElMessage.error('批量生成评语失败');
-        } finally {
-          loading.value = false;
-        }
-      });
-    };
+    // const generateAllComments = async () => {
+    //   ElMessageBox.confirm(
+    //       '确定要为所有学生生成评语吗？',
+    //       '批量生成评语',
+    //       {
+    //         confirmButtonText: '确定',
+    //         cancelButtonText: '取消',
+    //         type: 'warning'
+    //       }
+    //   ).then(async () => {
+    //     loading.value = true;
+    //     try {
+    //       // 为每个学生生成评语
+    //       for (const student of groupStudents.value) {
+    //         if (!student.comment) {
+    //           // 这里可以调用批量生成评语的API
+    //           console.log('为', student.real_name, '生成评语');
+    //         }
+    //       }
+    //       ElMessage.success('批量生成评语完成');
+    //     } catch (error) {
+    //       console.error('批量生成评语失败:', error);
+    //       ElMessage.error('批量生成评语失败');
+    //     } finally {
+    //       loading.value = false;
+    //     }
+    //   });
+    // };
 
     // 工具函数
     const getTypeTagType = (type?: number) => {
@@ -614,7 +614,7 @@ export default defineComponent({
       loadGroupStudents,
       openScoreDialog,
       saveScores,
-      generateAllComments,
+      //generateAllComments,
       updateStudentComment,
       handleGenerateComment,
       viewTeacherScores,
