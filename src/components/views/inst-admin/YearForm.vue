@@ -21,12 +21,6 @@
             :disabled="isEdit"
         ></el-input>
       </el-form-item>
-      <el-form-item label="年份状态" prop="status">
-        <el-radio-group v-model="formData.status">
-          <el-radio label="active">启用</el-radio>
-          <el-radio label="inactive">停用</el-radio>
-        </el-radio-group>
-      </el-form-item>
     </el-form>
     <template #footer>
       <span class="dialog-footer">
