@@ -271,16 +271,31 @@ export default defineComponent({
         const loadTeachers = async () => {
             loading.value = true;
             try {
-                await request.get('/teachers/list', {
+                console.log('加载教师列表，院系ID:', instituteId.value);
+
+                const response = await request.get('/teachers/list', {
                     params: {
                         institute_id: instituteId.value,
                     }
-                }).then(res=>{
-                  teacherList.value = res.data;
-                  total.value = res.data.length;
                 });
+
+                console.log('教师列表响应:', response);
+
+                // 注意：这里 response 已经是 data 了
+                if (response && response.success === true) {
+                    teacherList.value = response.data || [];
+                    total.value = teacherList.value.length;
+                } else {
+                    teacherList.value = [];
+                    total.value = 0;
+                    console.warn('加载教师列表失败:', response?.message);
+                }
+
             } catch (error) {
+                console.error('加载教师列表失败:', error);
                 ElMessage.error('加载失败');
+                teacherList.value = [];
+                total.value = 0;
             } finally {
                 loading.value = false;
             }
@@ -309,20 +324,38 @@ export default defineComponent({
             if (!valid) return;
 
             try {
-                await request.post('/teachers/create', {
+                // 准备请求数据
+                const requestData = {
                     id: addForm.value.id,
                     realName: addForm.value.name,
-                    phone: addForm.value.phone,
-                    email: addForm.value.email,
-                    instituteId: addForm.value.instituteId
-                });
+                    phone: addForm.value.phone || '',
+                    email: addForm.value.email || '',
+                    instId: instituteId.value // 使用当前管理员的院系ID
+                };
 
-                ElMessage.success('创建成功');
-                addDialogVisible.value = false;
-                loadTeachers();
+                console.log('发送创建教师请求数据:', requestData);
+                console.log('当前院系ID:', instituteId.value);
+
+                // 注意：由于拦截器直接返回 data，这里的 response 就是后端返回的 data
+                const response = await request.post('/teachers/create', requestData);
+
+                console.log('创建教师响应:', response);
+
+                // 直接检查 response，因为拦截器已经返回了 data
+                if (response && response.success === true) {
+                    ElMessage.success(response.message || '创建成功');
+                    addDialogVisible.value = false;
+                    loadTeachers();
+                } else {
+                    // 处理失败情况
+                    const errorMsg = response?.message || '创建失败';
+                    ElMessage.error(errorMsg);
+                    console.warn('创建失败响应:', response);
+                }
+
             } catch (error: any) {
                 console.error('创建教师失败:', error);
-                ElMessage.error(error.response?.data?.message || '创建失败');
+                ElMessage.error('创建失败: ' + (error.message || '未知错误'));
             }
         };
 
@@ -574,10 +607,25 @@ export default defineComponent({
             if (userInfo) {
                 try {
                     const info = JSON.parse(userInfo);
-                    instituteId.value = info.institute_id || info.instId || 1;
+                    console.log('用户信息:', info); // 添加日志
+
+                    // 尝试多种可能的字段名
+                    instituteId.value = info.institute_id ||
+                                       info.inst_id ||
+                                       info.instituteId ||
+                                       info.instId ||
+                                       (info.institute && info.institute.id) ||
+                                       1;
+
+                    console.log('获取到的院系ID:', instituteId.value);
+
                 } catch (error) {
                     console.error('解析用户信息失败:', error);
+                    instituteId.value = 1; // 默认值
                 }
+            } else {
+                console.warn('未找到用户信息');
+                instituteId.value = 1; // 默认值
             }
 
             loadTeachers();
