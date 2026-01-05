@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">指导学生管理</h2>
-        <p class="page-subtitle">管理您所指导的学生，包括填写题目摘要和选择评阅人</p>
+        <p class="page-subtitle">管理您所指导的学生，包括填写题目摘要</p>
       </div>
       <div class="header-actions">
         <el-button type="primary" icon="el-icon-plus" @click="showAddStudentDialog = true">
@@ -79,27 +79,6 @@
             <span v-else class="no-data">-</span>
           </template>
         </el-table-column>
-
-        <!-- 评阅人信息 -->
-        <el-table-column label="评阅人" width="120">
-          <template #default="scope">
-            <div v-if="scope.row.reviewer_name" class="reviewer-info">
-              <div class="reviewer-name">{{ scope.row.reviewer_name }}</div>
-              <div class="reviewer-id">{{ scope.row.reviewer_id }}</div>
-            </div>
-            <el-button
-                v-else
-                type="text"
-                icon="el-icon-user"
-                size="small"
-                @click="openSelectReviewerDialog(scope.row)"
-                :disabled="!scope.row.title"
-            >
-              选择评阅人
-            </el-button>
-          </template>
-        </el-table-column>
-
         <!-- 答辩日期 -->
         <el-table-column prop="time" label="答辩日期" width="100">
           <template #default="scope">
@@ -131,15 +110,6 @@
                         command="editThesis"
                     >
                       {{ scope.row.title ? '修改题目摘要' : '填写题目摘要' }}
-                    </el-dropdown-item>
-
-                    <!-- 选择评阅人 -->
-                    <el-dropdown-item
-                        :disabled="!scope.row.title || scope.row.status === 'defensed'"
-                        icon="el-icon-user"
-                        command="selectReviewer"
-                    >
-                      {{ scope.row.reviewer_name ? '更换评阅人' : '选择评阅人' }}
                     </el-dropdown-item>
 
                     <!-- 删除学生 -->
@@ -179,20 +149,8 @@
         @cancel="thesisDialog.visible = false"
     />
 
-    <ReviewerDialog
-        v-model:visible="reviewerDialog.visible"
-        :student-id="reviewerDialog.student_id"
-        :student-name="reviewerDialog.studentName"
-        :teachers="instituteTeachers"
-        :selected-reviewer-id="reviewerDialog.selectedReviewerId"
-        :selected-reviewer-name="reviewerDialog.selectedReviewerName"
-        @confirm="saveReviewer"
-        @cancel="reviewerDialog.visible = false"
-    />
-
     <AddStudentDialog
         v-model:visible="showAddStudentDialog"
-        :available-years="availableYears"
         :search-result="studentSearchResult"
         @confirm="addStudent"
         @cancel="showAddStudentDialog = false"
@@ -388,18 +346,6 @@ export default defineComponent({
       };
     };
 
-    const saveReviewer = async (data: any) => {
-      try {
-        // 调用后端API保存评阅人
-        // ...
-        ElMessage.success('设置评阅人成功');
-        reviewerDialog.value.visible = false;
-        loadStudentList();
-      } catch (error) {
-        ElMessage.error('设置评阅人失败');
-      }
-    };
-
     // 删除学生确认
     const confirmDeleteStudent = (student: Student) => {
       ElMessageBox.confirm(
@@ -487,7 +433,6 @@ export default defineComponent({
       openThesisDialog,
       saveThesisInfo,
       openSelectReviewerDialog,
-      saveReviewer,
       truncateText,
       formatDate,
       getTypeTagType,

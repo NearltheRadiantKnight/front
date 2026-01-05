@@ -17,14 +17,6 @@
         >
           批量生成评语
         </el-button>
-        <el-button
-            type="warning"
-            icon="el-icon-download"
-            @click="openExportDialog"
-            :disabled="scoredStudentsCount === 0"
-        >
-          打包已评分成绩表
-        </el-button>
       </div>
     </div>
 
@@ -60,11 +52,11 @@
           :default-sort="{prop: 'id', order: 'ascending'}"
       >
         <!-- 学生基本信息 -->
-        <el-table-column prop="id" label="学号" width="100" sortable />
+        <el-table-column prop="id" label="学号" width="80" sortable />
         <el-table-column prop="real_name" label="姓名" width="80" />
 
         <!-- 题目信息 -->
-        <el-table-column label="题目" min-width="180">
+        <el-table-column label="题目" min-width="150">
           <template #default="scope">
             <div class="thesis-title">
               <strong>{{ scope.row.title || '未填写题目' }}</strong>
@@ -78,10 +70,10 @@
         </el-table-column>
 
         <!-- 指导教师 -->
-        <el-table-column prop="teacherName" label="指导教师" width="100" />
+        <el-table-column prop="teacherName" label="指导教师" width="80" />
 
         <!-- 当前成绩 -->
-        <el-table-column label="当前成绩" width="120">
+        <el-table-column label="当前成绩" width="80">
           <template #default="scope">
             <div v-if="scope.row.scores" class="score-info">
               <div class="total-score">
@@ -96,7 +88,7 @@
         </el-table-column>
 
         <!-- 答辩组长特有功能：查看其他教师评分 -->
-        <el-table-column label="其他评委评分" width="120" v-if="isDefenseLeader">
+        <el-table-column label="其他评委评分" width="100" v-if="isDefenseLeader">
           <template #default="scope">
             <div class="teacher-scores-section">
               <div class="scores-count" v-if="scope.row.teacherScores && scope.row.teacherScores.length > 0">
@@ -133,19 +125,19 @@
         </el-table-column>
 
         <!-- 状态 -->
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="80">
           <template #default="scope">
             <el-tag
-                :type="getScoreStatusTagType(scope.row.scores)"
+                :type="getScoreStatusTagType(scope.row)"
                 size="small"
             >
-              {{ getScoreStatusText(scope.row.scores) }}
+              {{ getScoreStatusText(scope.row) }}
             </el-tag>
           </template>
         </el-table-column>
 
         <!-- 操作列 -->
-        <el-table-column label="操作" width="160">
+        <el-table-column label="操作" width="100">
           <template #default="scope">
             <div class="action-buttons">
               <el-button
@@ -155,17 +147,7 @@
                   @click="openScoreDialog(scope.row)"
                   :disabled="scope.row.status === 'defensed'"
               >
-                评分
-              </el-button>
-              <el-button
-                  type="success"
-                  icon="el-icon-download"
-                  size="small"
-                  @click="exportSingleStudent(scope.row)"
-                  :disabled="!scope.row.scores || scope.row.scores.total === 0"
-                  title="导出该学生的成绩表"
-              >
-                导出
+                {{ hasCurrentTeacherScored(scope.row) ? '修改' : '评分' }}
               </el-button>
             </div>
           </template>
@@ -189,15 +171,6 @@
         :teacher-scores="scoreDialog.teacherScores"
         @confirm="saveScores"
         @cancel="scoreDialog.visible = false"
-    />
-
-    <!-- 导出对话框 -->
-    <ExportDialog
-        v-model:visible="exportDialog.visible"
-        :scored-students-count="scoredStudentsCount"
-        :group-id="currentGroup?.groupId"
-        @confirm="handleExport"
-        @cancel="exportDialog.visible = false"
     />
 
     <!-- 查看其他教师评分对话框 -->
@@ -229,6 +202,7 @@ interface Student {
   comment?: string;
   generatingComment?: boolean;
   teacherScores?: TeacherScore[];
+  currentTeacherScore?: DefenseScores; // 添加这个字段
 }
 
 interface DefenseScores {
@@ -295,9 +269,9 @@ export default defineComponent({
       teacherScores: [] as TeacherScore[]
     });
 
-    // 计算已评分学生数量
+    // 计算已评分学生数量（基于当前教师）
     const scoredStudentsCount = computed(() => {
-      return groupStudents.value.filter(student => student.scores?.total > 0).length;
+      return groupStudents.value.filter(student => hasCurrentTeacherScored(student)).length;
     });
 
     // 加载答辩小组信息
@@ -338,6 +312,9 @@ export default defineComponent({
         groupStudents.value = res.data.map(student => {
           const teacherScores = parseTeacherScores(student.teacher_scores, student.type);
 
+          // 获取当前教师的评分
+          const currentTeacherScore = getCurrentTeacherScore(teacherScores);
+
           // 构建学生对象
           const studentObj: Student = {
             id: student.stu_id,
@@ -346,6 +323,7 @@ export default defineComponent({
             type: student.type,
             teacherName: student.teacherName,
             teacherScores: teacherScores,
+            currentTeacherScore: currentTeacherScore, // 保存当前教师的评分
             comment: student.comment,
             scores: {
               total: student.total_score || 0,
@@ -376,6 +354,22 @@ export default defineComponent({
       } finally {
         loading.value = false;
       }
+    };
+
+    // 获取当前教师的评分
+    const getCurrentTeacherScore = (teacherScores: TeacherScore[]): DefenseScores | undefined => {
+      if (!teacherScores || !currentTeacherId.value) return undefined;
+
+      const currentScore = teacherScores.find(score =>
+          score.teacherId === currentTeacherId.value
+      );
+
+      return currentScore ? currentScore.scores : undefined;
+    };
+
+    // 检查当前教师是否已评分
+    const hasCurrentTeacherScored = (student: Student): boolean => {
+      return !!student.currentTeacherScore && student.currentTeacherScore.total > 0;
     };
 
     // 解析教师评分数据
@@ -476,7 +470,8 @@ export default defineComponent({
           title: student.title,
           type: student.type
         },
-        initialScores: student.scores || null,
+        // 使用当前教师的评分作为初始值
+        initialScores: student.currentTeacherScore || null,
         teacherScores: student.teacherScores || []
       };
     };
@@ -530,50 +525,6 @@ export default defineComponent({
       }
     };
 
-    // 导出单个学生成绩表
-    const exportSingleStudent = async (student: Student) => {
-      if (!student.scores || student.scores.total === 0) {
-        ElMessage.warning('该学生尚未评分，无法导出成绩表');
-        return;
-      }
-
-      try {
-        loading.value = true;
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        ElMessage.success(`已导出 ${student.real_name} 的成绩表`);
-      } catch (error) {
-        ElMessage.error('导出失败');
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // 打开导出对话框
-    const openExportDialog = () => {
-      if (scoredStudentsCount.value === 0) {
-        ElMessage.warning('暂无已评分学生');
-        return;
-      }
-      exportDialog.value.visible = true;
-    };
-
-    // 处理批量导出
-    const handleExport = async (filename: string) => {
-      try {
-        const scoredStudents = groupStudents.value.filter(student => student.scores?.total > 0);
-        console.log('导出参数:', {
-          teacherId: currentTeacherId.value,
-          groupId: currentGroup.value?.groupId,
-          filename: filename,
-          studentCount: scoredStudents.length
-        });
-        ElMessage.success('已开始打包导出，请稍候下载');
-        exportDialog.value.visible = false;
-      } catch (error) {
-        ElMessage.error('导出失败');
-      }
-    };
-
     // 批量生成评语
     const generateAllComments = async () => {
       ElMessageBox.confirm(
@@ -613,24 +564,22 @@ export default defineComponent({
       return type === 1 ? '毕业设计' : '毕业论文';
     };
 
-    const getScoreStatusTagType = (scores?: DefenseScores) => {
-      if (!scores || scores.total === 0) {
+    // 修改：基于当前教师是否评分来显示状态
+    const getScoreStatusTagType = (student: Student) => {
+      if (!hasCurrentTeacherScored(student)) {
         return 'info';
-      } else if (scores.total >= 90) {
+      } else if (student.currentTeacherScore!.total >= 90) {
         return 'success';
-      } else if (scores.total >= 60) {
+      } else if (student.currentTeacherScore!.total >= 60) {
         return '';
       } else {
         return 'danger';
       }
     };
 
-    const getScoreStatusText = (scores?: DefenseScores) => {
-      if (!scores || scores.total === 0) {
-        return '待评分';
-      } else {
-        return '已评分';
-      }
+    // 修改：基于当前教师是否评分来显示状态文字
+    const getScoreStatusText = (student: Student) => {
+      return hasCurrentTeacherScored(student) ? '已评分' : '待评分';
     };
 
     // 初始化
@@ -665,9 +614,6 @@ export default defineComponent({
       loadGroupStudents,
       openScoreDialog,
       saveScores,
-      exportSingleStudent,
-      openExportDialog,
-      handleExport,
       generateAllComments,
       updateStudentComment,
       handleGenerateComment,
@@ -675,12 +621,12 @@ export default defineComponent({
       getTypeTagType,
       getTypeText,
       getScoreStatusTagType,
-      getScoreStatusText
+      getScoreStatusText,
+      hasCurrentTeacherScored
     };
   }
 });
 </script>
-
 <style scoped>
 /* 原有样式保持不变，添加新样式 */
 .review-student-container {
