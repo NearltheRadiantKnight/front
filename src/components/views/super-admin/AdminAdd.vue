@@ -41,7 +41,7 @@
                             placeholder="请输入登录用户名"
                             style="width: 300px;"
                     />
-                    <div class="form-tip">建议使用英文用户名，3-20个字符</div>
+                    <div class="form-tip">必须是以字母开头，3-20位的字母或数字</div>
                 </el-form-item>
 
                 <el-form-item label="登录密码" prop="password" required>
@@ -52,7 +52,7 @@
                             style="width: 300px;"
                             show-password
                     />
-                    <div class="form-tip">密码长度6-20个字符</div>
+                    <div class="form-tip">6-20位，需包含字母、数字、特殊字符(_和.)中任意两种</div>
                 </el-form-item>
 
                 <el-form-item label="确认密码" prop="confirmPassword" required>
@@ -178,6 +178,34 @@ export default defineComponent({
         };
 
         const validatePassword = (rule: any, value: string, callback: any) => {
+            // 检查是否包含非法字符（除了字母、数字、_、.之外的字符）
+            if (/[^a-zA-Z0-9_.]/.test(value)) {
+                callback(new Error('格式错误'));
+                return;
+            }
+            
+            // 检查长度是否在6-20之间（闭区间）
+            if (value.length < 6 || value.length > 20) {
+                callback(new Error('密码长度必须在6-20位之间'));
+                return;
+            }
+            
+            // 检查是否包含字母、数字、特殊字符中的任意两种
+            const hasLetter = /[a-zA-Z]/.test(value);
+            const hasNumber = /[0-9]/.test(value);
+            const hasSpecial = /[_.]/.test(value);
+            
+            const typeCount = (hasLetter ? 1 : 0) + (hasNumber ? 1 : 0) + (hasSpecial ? 1 : 0);
+            
+            if (typeCount < 2) {
+                callback(new Error('密码必须包含字母、数字、特殊字符(_和.)中任意两种'));
+                return;
+            }
+            
+            callback();
+        };
+
+        const validateConfirmPassword = (rule: any, value: string, callback: any) => {
             if (value !== form.password) {
                 callback(new Error('两次输入密码不一致'));
             } else {
@@ -186,11 +214,25 @@ export default defineComponent({
         };
 
         const validateUsername = (rule: any, value: string, callback: any) => {
-            if (!/^[a-zA-Z][a-zA-Z0-9_]{2,19}$/.test(value)) {
-                callback(new Error('用户名必须以字母开头，3-20位字母数字下划线'));
-            } else {
-                callback();
+            // 检查是否包含非法字符（中文、空格、特殊符号等）
+            if (/[^a-zA-Z0-9]/.test(value)) {
+                callback(new Error('格式错误'));
+                return;
             }
+            
+            // 检查是否以字母开头
+            if (!/^[a-zA-Z]/.test(value)) {
+                callback(new Error('用户名必须以字母开头'));
+                return;
+            }
+            
+            // 检查长度是否在3-20之间（闭区间）
+            if (value.length < 3 || value.length > 20) {
+                callback(new Error('用户名长度必须在3-20位之间'));
+                return;
+            }
+            
+            callback();
         };
 
         const rules = {
@@ -207,11 +249,11 @@ export default defineComponent({
             ],
             password: [
                 {required: true, message: '请输入密码', trigger: 'blur'},
-                {min: 6, max: 20, message: '长度在 6 到 20 个字符', trigger: 'blur'}
+                {validator: validatePassword, trigger: 'blur'}
             ],
             confirmPassword: [
                 {required: true, message: '请确认密码', trigger: 'blur'},
-                {validator: validatePassword, trigger: 'blur'}
+                {validator: validateConfirmPassword, trigger: 'blur'}
             ],
             phone: [
                 {pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur'}

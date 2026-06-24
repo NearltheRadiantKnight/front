@@ -1,4 +1,4 @@
-import { App } from 'vue';
+import type { App } from 'vue';
 import http from '@/api/http';
 import { uploadTemplate, validateTemplate } from '@/api/upload';
 

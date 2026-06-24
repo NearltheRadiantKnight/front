@@ -281,7 +281,7 @@ export default defineComponent({
           params:{
             id: student_id
           }
-        }).then(res=>{
+        }).then((res: any)=>{
           if (res.code == 500)
           {
             ElMessage.error(res.message);

@@ -309,7 +309,7 @@ export default defineComponent({
         });
 
         // 处理返回的学生数据
-        groupStudents.value = res.data.map(student => {
+        groupStudents.value = res.data.map((student: any) => {
           const teacherScores = parseTeacherScores(student.teacher_scores, student.type);
 
           // 获取当前教师的评分
@@ -421,12 +421,29 @@ export default defineComponent({
               graded_by: score.teacher_name || '',
               graded_at: score.graded_at || new Date().toISOString()
             };
+          } else {
+            // 默认情况
+            scoresData = {
+              total: score.total_score || 0,
+              paper_quality: score.paper_quality || 0,
+              presentation: score.presentation || 0,
+              qa_performance: score.qa_performance || 0,
+              design_quality1: score.design_quality1 || 0,
+              design_quality2: score.design_quality2 || 0,
+              design_quality3: score.design_quality3 || 0,
+              design_presentation: score.design_presentation || 0,
+              design_qa1: score.design_qa1 || 0,
+              design_qa2: score.design_qa2 || 0,
+              graded_by: score.teacher_name || '',
+              graded_at: score.graded_at || new Date().toISOString()
+            };
           }
 
           return {
             teacherId: score.teacher_id || '',
             teacherName: score.teacher_name || '',
             scores: scoresData,
+            graded_at: score.graded_at || new Date().toISOString()
           };
         });
       } catch (error) {
@@ -507,7 +524,7 @@ export default defineComponent({
           design_qa2: scoresData.design_qa2 || 0
         };
         console.log(requestData);
-        const response = await request.post("/defense/save-score", requestData);
+        const response: any = await request.post("/defense/save-score", requestData);
 
         if (response.code === 200) {
           ElMessage.success('成绩保存成功');

@@ -47,7 +47,8 @@
 
 <script lang="ts">
 import { defineComponent, reactive, ref } from 'vue';
-import { ElMessage, FormInstance, FormRules } from 'element-plus';
+import { ElMessage } from 'element-plus';
+import type { FormInstance, FormRules } from 'element-plus';
 
 interface ThesisForm {
   type: number;

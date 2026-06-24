@@ -587,10 +587,10 @@ export default defineComponent({
         remaining -= toAdd;
       }
 
-      // 更新分数
-      paperScores.value.paper_quality = allocated[0];
-      paperScores.value.presentation = allocated[1];
-      paperScores.value.qa_performance = allocated[2];
+      // 更新分数（确保值存在）
+      paperScores.value.paper_quality = allocated[0] || 0;
+      paperScores.value.presentation = allocated[1] || 0;
+      paperScores.value.qa_performance = allocated[2] || 0;
 
       // 重新计算总分（可能因为取整有微小差异）
       calculatePaperTotal();
@@ -636,13 +636,13 @@ export default defineComponent({
         ElMessage.warning('自动分配后仍有剩余分数，请手动调整');
       }
 
-      // 更新分数
-      designScores.value.design_quality1 = allocated[0];
-      designScores.value.design_quality2 = allocated[1];
-      designScores.value.design_quality3 = allocated[2];
-      designScores.value.design_presentation = allocated[3];
-      designScores.value.design_qa1 = allocated[4];
-      designScores.value.design_qa2 = allocated[5];
+      // 更新分数（确保值存在）
+      designScores.value.design_quality1 = allocated[0] || 0;
+      designScores.value.design_quality2 = allocated[1] || 0;
+      designScores.value.design_quality3 = allocated[2] || 0;
+      designScores.value.design_presentation = allocated[3] || 0;
+      designScores.value.design_qa1 = allocated[4] || 0;
+      designScores.value.design_qa2 = allocated[5] || 0;
 
       // 重新计算总分
       calculateDesignTotal();
