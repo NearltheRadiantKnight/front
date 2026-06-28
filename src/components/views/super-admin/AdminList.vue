@@ -38,7 +38,7 @@
                     <el-input v-model="form.realName" placeholder="请输入管理员名称"/>
                 </el-form-item>
                 <el-form-item label="登录账号" required>
-                    <el-input v-model="form.id" placeholder="请输入登录账号"/>
+                    <el-input v-model="form.id" :disabled="isEditMode" placeholder="请输入登录账号"/>
                 </el-form-item>
                 <el-form-item label="电话">
                     <el-input v-model="form.phone" placeholder="请输入电话"/>
@@ -67,9 +67,9 @@ export default defineComponent({
         return {
             instituteList:[],
             admins: [],
-            showDialog: ref(false),
-            dialogTitle: ref('修改管理员'),
-            isEditMode : ref(false),
+            showDialog: false,
+            dialogTitle: '修改管理员',
+            isEditMode : false,
             form : {
                 realName:'',
                 id:'',
@@ -96,10 +96,14 @@ export default defineComponent({
         },
         handleSave(){
             userApi.updateAdmin({...this.form}).then((res=>{
-                ElMessage.success('修改成功');
-                this.showDialog = false;
-                this.isEditMode = false;
-                window.location.reload();
+                if (res.code === 200 && res.data) {
+                    ElMessage.success('修改成功');
+                    this.showDialog = false;
+                    this.isEditMode = false;
+                    this.loadAdmin();
+                } else {
+                    ElMessage.error(res.message || '修改失败');
+                }
             }));
         },
         async deleteAdmin(row:any) {
