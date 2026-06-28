@@ -57,10 +57,10 @@
             <span>评价指标管理</span>
           </el-menu-item>
 
-<!--          <el-menu-item index="/admin/defenseyear">-->
-<!--            <i class="el-icon-date"></i>-->
-<!--            <span>答辩年份管理</span>-->
-<!--          </el-menu-item>-->
+          <el-menu-item index="/admin/defenseYear">
+            <i class="el-icon-date"></i>
+            <span>答辩年份管理</span>
+          </el-menu-item>
 
           <!-- 修改：只保留一个菜单项，包含模板管理和日期设置 -->
           <el-menu-item index="/admin/template">

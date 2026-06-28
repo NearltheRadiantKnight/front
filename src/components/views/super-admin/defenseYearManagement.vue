@@ -1,46 +1,41 @@
 <template>
   <div class="year-management">
-    <!-- 页面标题 -->
     <div class="page-header">
       <h2>答辩年份管理</h2>
-      <p class="subtitle">管理系统中的答辩年份及对应答辩组配置</p>
+      <p class="subtitle">按年份查看各学院的答辩组配置</p>
     </div>
 
-    <!-- 操作栏 -->
     <el-card class="operation-card" shadow="never">
       <div class="operation-bar">
         <el-button type="primary" @click="handleAddYear">
-          <i class="el-icon-plus"></i> 新增答辩年份
+          新增答辩年份
         </el-button>
       </div>
     </el-card>
 
-    <!-- 年份列表 -->
     <YearList
-        :years="filteredYears"
-        :loading="loading"
-        @manage-groups="handleManageGroups"
-        @edit-year="handleEditYear"
-        @toggle-status="handleToggleYearStatus"
-        @delete-year="handleDeleteYear"
-        @add-year="handleAddYear"
+      :years="filteredYears"
+      :loading="loading"
+      @manage-institute-groups="handleManageInstituteGroups"
+      @delete-year="handleDeleteYear"
+      @add-year="handleAddYear"
     />
 
-    <!-- 年份表单对话框 -->
     <YearFormDialog
-        v-model="yearDialogVisible"
-        :form-data="yearForm"
-        :is-edit="isEditingYear"
-        :years="years"
-        @update-visible="updateVisible"
-        @submit="handleSubmitYear"
+      v-model="yearDialogVisible"
+      :form-data="yearForm"
+      :is-edit="isEditingYear"
+      :years="years"
+      @update-visible="updateVisible"
+      @submit="handleSubmitYear"
     />
 
-    <!-- 答辩组管理对话框 -->
     <GroupManager
-        v-model="groupManagerVisible"
-        :year="selectedYear"
-        @refresh="fetchYears"
+      v-model="groupManagerVisible"
+      :year="selectedYear"
+      :institute-id="selectedInstituteId"
+      :institute-name="selectedInstituteName"
+      @refresh="fetchYears"
     />
   </div>
 </template>
@@ -49,8 +44,8 @@
 import YearList from './YearList.vue'
 import YearFormDialog from './YearForm.vue'
 import GroupManager from './GroupManager.vue'
-import request from "@/api";
-import {ElMessage, ElMessageBox} from "element-plus";
+import request from "@/api"
+import { ElMessage, ElMessageBox } from "element-plus"
 
 export default {
   name: 'YearManagement',
@@ -61,30 +56,24 @@ export default {
   },
   data() {
     return {
-      // 数据
       years: [],
-
-      // 搜索
       searchKeyword: '',
 
-      // 对话框状态
       yearDialogVisible: false,
       groupManagerVisible: false,
 
-      // 表单数据
       yearForm: {
         year: new Date().getFullYear(),
         status: 'active',
         description: ''
       },
 
-      // 选中项
       selectedYear: null,
+      selectedInstituteId: 0,
+      selectedInstituteName: '',
 
-      // 状态
       loading: false,
-      isEditingYear: false,
-      editingYearIndex: -1
+      isEditingYear: false
     }
   },
   computed: {
@@ -92,79 +81,82 @@ export default {
       if (!this.searchKeyword) return this.years
       const keyword = this.searchKeyword.toLowerCase()
       return this.years.filter(year =>
-          year.year.toString().includes(keyword) ||
-          (year.description && year.description.toLowerCase().includes(keyword))
+        year.year.toString().includes(keyword) ||
+        (year.description && year.description.toLowerCase().includes(keyword))
       )
     }
   },
   methods: {
-    // 初始化数据
     async fetchYears() {
-      this.loading = true;
-      request.get("/defense/allyear").then((res)=>{
-          this.years = res.data;
-      }).finally(this.loading = false);
-
+      this.loading = true
+      try {
+        const res = await request.get("/defense/year-institute-summary")
+        this.years = (res.data || []).map(year => ({
+          ...year,
+          institutes: year.institutes || []
+        }))
+      } finally {
+        this.loading = false
+      }
     },
 
-    // 事件处理
     handleAddYear() {
-      this.isEditingYear = false;
+      this.isEditingYear = false
       this.yearForm = {
         year: new Date().getFullYear(),
-        status: 'active'
-      };
-      this.yearDialogVisible = true;
-
-    },
-
-    handleEditYear(year, index) {
-      this.isEditingYear = true
-      this.editingYearIndex = index
-      this.yearForm = { ...year }
+        status: 'active',
+        description: ''
+      }
       this.yearDialogVisible = true
     },
 
-    handleManageGroups(year) {
+    handleManageInstituteGroups(year, institute) {
       this.selectedYear = year
+      this.selectedInstituteId = Number(institute.id)
+      this.selectedInstituteName = institute.name
       this.groupManagerVisible = true
     },
 
     async handleSubmitYear(formData) {
-        request.post("/defense/yearadd", {...formData}).then((res)=>{
-            this.fetchYears();
-            ElMessage.success("年份创建成功");
-        });
-        this.isEditingYear = false;
-        this.yearDialogVisible = false;
+      const res = await request.post("/defense/yearadd", { ...formData })
+      if (res.code !== 200) {
+        ElMessage.error(res.message || "年份创建失败")
+        return
+      }
 
+      this.yearDialogVisible = false
+      this.isEditingYear = false
+      ElMessage.success("年份创建成功")
+      await this.fetchYears()
     },
 
-    async handleDeleteYear(year, index) {
-      ElMessageBox.confirm(
-          `确定要删除年份${year.year}吗?`,
-          '确定删除',
+    async handleDeleteYear(year) {
+      try {
+        await ElMessageBox.confirm(
+          `确定要删除 ${year.year} 年及其所有答辩组吗？`,
+          '确认删除',
           {
-            confirmButtonText:'确认后果并删除',
-            cancelButtonText:'取消',
-            type:'warning'
+            confirmButtonText: '确认删除',
+            cancelButtonText: '取消',
+            type: 'warning'
           }
-      ).then(()=>{
-        try {
-          request.post("/defense/yeardelete", {...year}).then(res=>{
-            this.fetchYears();
-          });
-          this.years.splice(index, 1)
-          this.$message.success('删除成功')
-        } catch (error) {
-          this.$message.error('删除失败：' + error.message)
-        }
-      });
+        )
+      } catch {
+        return
+      }
 
+      const res = await request.post("/defense/yeardelete", { ...year })
+      if (res.code !== 200) {
+        ElMessage.error(res.message || "删除失败")
+        return
+      }
+
+      ElMessage.success('删除成功')
+      await this.fetchYears()
     },
 
-    updateVisible(visible){
-      this.yearDialogVisible = visible;
+    updateVisible(visible) {
+      this.yearDialogVisible = visible
     }
   },
   mounted() {
@@ -179,18 +171,19 @@ export default {
 }
 
 .page-header {
-  margin-bottom: 30px;
+  margin-bottom: 24px;
 }
 
 .page-header h2 {
-  color: #333;
+  color: #303133;
   font-size: 24px;
-  margin-bottom: 8px;
+  margin: 0 0 8px;
 }
 
 .subtitle {
-  color: #666;
+  color: #606266;
   font-size: 14px;
+  margin: 0;
 }
 
 .operation-card {
@@ -200,6 +193,6 @@ export default {
 .operation-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: flex-end;
 }
 </style>

@@ -1,35 +1,32 @@
 <template>
   <el-dialog
-      v-model="visible"
-      :title="`${year?.year}年 - 答辩组管理`"
-      width="75%"
-      top="5vh"
-      class="group-manager-dialog"
+    v-model="visible"
+    :title="dialogTitle"
+    width="75%"
+    top="5vh"
+    class="group-manager-dialog"
   >
-    <!-- 答辩组列表 -->
     <GroupList
-        :groups="groups"
-        :loading="loading"
-        @add-group="showAddGroupDialog"
-        @edit-group="handleEditGroup"
-        @view-students="handleViewStudents"
-        @delete-group="handleDeleteGroup"
+      :groups="groups"
+      :loading="loading"
+      @add-group="showAddGroupDialog"
+      @edit-group="handleEditGroup"
+      @view-students="handleViewStudents"
+      @delete-group="handleDeleteGroup"
     />
 
-    <!-- 答辩组表单对话框 -->
     <GroupFormDialog
-        v-model="groupFormVisible"
-        :form-data="currentGroup"
-        :teachers="teacherList"
-        :year="year"
-        @submit="handleSubmitGroup"
+      v-model="groupFormVisible"
+      :form-data="currentGroup"
+      :teachers="teacherList"
+      :year="year"
+      @submit="handleSubmitGroup"
     />
 
-    <!-- 学生列表对话框 -->
     <StudentListDialog
-        v-model="studentListDialogVisible"
-        :group="selectedGroup"
-        @student-removed="handleStudentRemoved"
+      v-model="studentListDialogVisible"
+      :group="selectedGroup"
+      @student-removed="handleStudentRemoved"
     />
   </el-dialog>
 </template>
@@ -38,8 +35,8 @@
 import GroupList from './GroupList.vue'
 import GroupFormDialog from './GroupFormDialog.vue'
 import StudentListDialog from './StudentList.vue'
-import request from "@/api/index.ts";
-import {ElMessage} from "element-plus";
+import request from "@/api/index.ts"
+import { ElMessage } from "element-plus"
 
 export default {
   name: 'GroupManager',
@@ -56,31 +53,33 @@ export default {
     year: {
       type: Object,
       default: null
+    },
+    instituteId: {
+      type: Number,
+      default: 0
+    },
+    instituteName: {
+      type: String,
+      default: ''
     }
   },
   emits: ['update:modelValue', 'refresh'],
   data() {
     return {
-      // 数据
       groups: [],
       teacherList: [],
 
       groupFormVisible: false,
-      studentDialogVisible: false,
       studentListDialogVisible: false,
 
-      // 表单数据
       currentGroup: {
         id: null,
         year: '',
         adminId: '',
-        maxStudents: 10,
+        maxStudents: 10
       },
 
-      // 选中项
       selectedGroup: null,
-
-      // 状态
       loading: false
     }
   },
@@ -92,6 +91,11 @@ export default {
       set(value) {
         this.$emit('update:modelValue', value)
       }
+    },
+    dialogTitle() {
+      const yearText = this.year?.year ? `${this.year.year}年` : ''
+      const instituteText = this.instituteName ? ` - ${this.instituteName}` : ''
+      return `${yearText}${instituteText} - 答辩组管理`
     }
   },
   watch: {
@@ -103,31 +107,30 @@ export default {
     }
   },
   methods: {
-    // 初始化数据
     async fetchGroups() {
       this.loading = true
+      const instituteQuery = this.instituteId > 0 ? `&institute_id=${this.instituteId}` : ''
 
-      request.get("/groups/all?year="+this.year.year).then(res=>{
-        this.groups = res.data;
-      }).finally(this.loading = false);
-
+      request.get("/groups/all?year=" + this.year.year + instituteQuery).then(res => {
+        this.groups = res.data
+      }).finally(() => {
+        this.loading = false
+      })
     },
 
     async fetchTeachers() {
-      const userInfo = localStorage.getItem('userInfo');
-      const info = JSON.parse(userInfo);
-      request.get("/teachers/list").then(res=>{
-        this.teacherList = res.data;
-      });
+      const instituteQuery = this.instituteId > 0 ? `?institute_id=${this.instituteId}` : ''
+      request.get("/teachers/list" + instituteQuery).then(res => {
+        this.teacherList = res.data
+      })
     },
 
-    // 答辩组操作
     showAddGroupDialog() {
       this.currentGroup = {
         id: null,
         year: this.year?.year || '',
         adminId: '',
-        maxStudents: 10,
+        maxStudents: 10
       }
       this.groupFormVisible = true
     },
@@ -138,22 +141,21 @@ export default {
     },
 
     async handleSubmitGroup(formData) {
-      request.post("/groups/update", {...formData}).then(res=>{
-        if (res.code === 500)
-        {
-          ElMessage.error(res.message);
-          return;
+      request.post("/groups/update", { ...formData }).then(res => {
+        if (res.code === 500) {
+          ElMessage.error(res.message)
+          return
         }
-        this.fetchGroups();
-      });
+        this.fetchGroups()
+        this.$emit('refresh')
+      })
     },
 
     async handleDeleteGroup(group) {
       try {
-        request.post("/groups/delete", {...group}).then(res=>{
-          this.fetchGroups();
-        });
-        // 从列表中移除
+        request.post("/groups/delete", { ...group }).then(() => {
+          this.fetchGroups()
+        })
         const index = this.groups.findIndex(g => g.id === group.id)
         if (index !== -1) {
           this.groups.splice(index, 1)
@@ -171,9 +173,9 @@ export default {
     },
 
     handleStudentRemoved() {
-      // 刷新答辩组数据
       this.fetchGroups()
       this.$message.success('学生移除成功')
+      this.$emit('refresh')
     }
   }
 }

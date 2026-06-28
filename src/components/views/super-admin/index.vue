@@ -99,8 +99,8 @@ export default {
       <el-col :span="8">
         <el-card class="quick-card" @click="navigateTo('/admin/defenseYear')">
           <i class="el-icon-date" style="color: #E6A23C;"></i>
-          <h3>设置年份</h3>
-          <p>配置答辩年份</p>
+          <h3>答辩年份管理</h3>
+          <p>管理答辩年份</p>
         </el-card>
       </el-col>
     </el-row>

@@ -20,10 +20,13 @@
                 <el-table-column prop="pwd" label="所属院系"/>
                 <el-table-column prop="phone" label="联系电话" width="120"/>
                 <el-table-column prop="email" label="邮箱"/>
-                <el-table-column label="操作" width="200">
+                <el-table-column label="操作" width="240">
                     <template #default="scope">
                         <el-button type="text" size="small" @click="this.editAdmin(scope.row)">编辑</el-button>
                         <el-button type="text" size="small" @click="resetPassword(scope.row)">重置密码</el-button>
+                        <el-button type="text" size="small" @click="deleteAdmin(scope.row)" style="color: #f56c6c;">
+                            删除
+                        </el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -98,6 +101,26 @@ export default defineComponent({
                 this.isEditMode = false;
                 window.location.reload();
             }));
+        },
+        async deleteAdmin(row:any) {
+            try {
+                await ElMessageBox.confirm(`确定要删除管理员 "${row.realName}" 吗？`, '警告', {
+                    type: 'warning',
+                    confirmButtonText: '确定',
+                    cancelButtonText: '取消'
+                });
+                const res: any = await userApi.deleteAdmin(row.id);
+                if (res.code === 200 && res.data) {
+                    ElMessage.success('管理员已删除');
+                    this.loadAdmin();
+                } else {
+                    ElMessage.error(res.message || '删除管理员失败');
+                }
+            } catch (error: any) {
+                if (error !== 'cancel' && error !== 'close') {
+                    ElMessage.error('删除管理员失败');
+                }
+            }
         }
     },
     mounted(): any {
@@ -109,10 +132,15 @@ export default defineComponent({
 
         const resetPassword = async (row: any) => {
             try {
-                await ElMessageBox.confirm(`确定要重置管理员 "${row.adminName}" 的密码吗？`, '提示', {
+                await ElMessageBox.confirm(`确定要重置管理员 "${row.realName}" 的密码吗？`, '提示', {
                     type: 'warning'
                 });
-                ElMessage.success('密码已重置为: 123456');
+                const res: any = await userApi.resetPassword(row.id);
+                if (res.code === 200 && res.data) {
+                    ElMessage.success('密码已重置为: 123456');
+                } else {
+                    ElMessage.error('重置密码失败');
+                }
             } catch {
                 // 用户取消
             }

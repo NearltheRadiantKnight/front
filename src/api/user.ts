@@ -57,8 +57,8 @@ export const userApi = {
   },
 
   // 重置密码
-  resetPassword: (id: number) => {
-    return post(`/admin/institute/${id}/reset-password`)
+  resetPassword: (id: string | number) => {
+    return post('/admin/resetPassword', { id })
   },
 
   // 启用/禁用管理员
@@ -67,8 +67,8 @@ export const userApi = {
   },
 
   // 删除管理员
-  deleteAdmin: (id: number) => {
-    return del(`/admin/institute/${id}`)
+  deleteAdmin: (id: string | number) => {
+    return post('/admin/delete', { id })
   },
 
   // 检查用户名是否可用

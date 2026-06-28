@@ -62,11 +62,11 @@ const router = createRouter({
           name: 'SuperAdminInstituteAdd',
           component: () => import('@/components/views/super-admin/InstituteAdd.vue')
         },
-        // {
-        //   path: 'defenseYear',
-        //   name: 'SuperAdminDefenseYear',
-        //   component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
-        // },
+        {
+          path: 'defenseYear',
+          name: 'SuperAdminDefenseYear',
+          component: () => import('@/components/views/super-admin/defenseYearManagement.vue')
+        },
         {
           path: 'template',
           name: 'SuperAdminTemplate',

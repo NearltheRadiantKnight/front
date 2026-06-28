@@ -4,13 +4,21 @@
             <template #header>
                 <div class="card-header">
                     <span>院系列表</span>
-                    <el-button type="primary" @click="()=>{this.$router.push('/admin/instituteadd');}">
-                        <i class="el-icon-plus"></i> 添加院系
-                    </el-button>
+                    <div>
+                        <el-input
+                            v-model="searchKeyword"
+                            placeholder="搜索院系、管理员或ID"
+                            clearable
+                            style="width: 240px; margin-right: 10px;"
+                        />
+                        <el-button type="primary" @click="()=>{this.$router.push('/admin/instituteadd');}">
+                            <i class="el-icon-plus"></i> 添加院系
+                        </el-button>
+                    </div>
                 </div>
             </template>
 
-            <el-table :data="this.instituteList" style="width: 100%">
+            <el-table :data="filteredInstituteList" style="width: 100%">
                 <el-table-column prop="id" label="ID" width="80"/>
                 <el-table-column prop="name" label="院系名称" width="120"/>
                 <el-table-column label="院系管理员" width="120">
@@ -69,6 +77,7 @@ export default defineComponent({
     data(){
         return{
             admins:[],
+            searchKeyword: '',
             instituteList : [],
             showDialog: ref(false),
             dialogTitle: ref('添加院系'),
@@ -78,6 +87,22 @@ export default defineComponent({
                 name: '',
                 adminId: '',
             }
+        }
+    },
+    computed: {
+        filteredInstituteList(): any[] {
+            const keyword = this.searchKeyword.trim().toLowerCase();
+            if (!keyword) {
+                return this.instituteList;
+            }
+            return this.instituteList.filter((item: any) => {
+                return [
+                    item.id,
+                    item.name,
+                    item.adminName,
+                    item.adminId
+                ].some(value => String(value ?? '').toLowerCase().includes(keyword));
+            });
         }
     },
     methods:{
@@ -116,12 +141,12 @@ export default defineComponent({
                 cancelButtonText: '取消'
             }).then(()=>{
                 request.post("/institute/delete", {"id":row.id}).then((res:any)=>{
-                    ElMessage.success('院系已删除');
-                    window.location.reload();
-                ElMessage({
-                    type:'success',
-                    message:'删除成功'
-                })
+                    if (res.code === 200 && res.data) {
+                        ElMessage.success('院系已删除');
+                        this.loadInstituteList();
+                    } else {
+                        ElMessage.error(res.message || '删除院系失败');
+                    }
             }).catch(()=>{});
             });
         },
