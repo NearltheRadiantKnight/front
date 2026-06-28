@@ -26,7 +26,8 @@
     <StudentListDialog
       v-model="studentListDialogVisible"
       :group="selectedGroup"
-      @student-removed="handleStudentRemoved"
+      :institute-id="instituteId"
+      @students-changed="handleStudentsChanged"
     />
   </el-dialog>
 </template>
@@ -75,7 +76,7 @@ export default {
       currentGroup: {
         id: null,
         year: '',
-        adminId: '',
+        admin_id: '',
         maxStudents: 10
       },
 
@@ -129,25 +130,31 @@ export default {
       this.currentGroup = {
         id: null,
         year: this.year?.year || '',
-        adminId: '',
+        admin_id: '',
         maxStudents: 10
       }
       this.groupFormVisible = true
     },
 
     handleEditGroup(group) {
-      this.currentGroup = { ...group }
+      this.currentGroup = {
+        ...group,
+        admin_id: group.admin_id || group.adminId || '',
+        maxStudents: group.max_student_count || group.maxStudents || 10,
+        year: group.year || this.year?.year || ''
+      }
       this.groupFormVisible = true
     },
 
     async handleSubmitGroup(formData) {
       request.post("/groups/update", { ...formData }).then(res => {
-        if (res.code === 500) {
-          ElMessage.error(res.message)
-          return
+        if (res.code === 200 && res.data) {
+          ElMessage.success('保存成功')
+          this.fetchGroups()
+          this.$emit('refresh')
+        } else {
+          ElMessage.error(res.message || '保存失败')
         }
-        this.fetchGroups()
-        this.$emit('refresh')
       })
     },
 
@@ -172,9 +179,8 @@ export default {
       this.studentListDialogVisible = true
     },
 
-    handleStudentRemoved() {
+    handleStudentsChanged() {
       this.fetchGroups()
-      this.$message.success('学生移除成功')
       this.$emit('refresh')
     }
   }

@@ -27,7 +27,8 @@ export const templateApi = {
   downloadTemplate: (templateId: number) => {
     // 注意：下载文件需要特殊处理
     const token = localStorage.getItem('token');
-    const url = `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/api/templates/download/${templateId}`;
+    const baseURL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+    const url = `${baseURL}/templates/download/${templateId}`;
     if (token) {
       return `${url}?token=${encodeURIComponent(token)}`;
     }

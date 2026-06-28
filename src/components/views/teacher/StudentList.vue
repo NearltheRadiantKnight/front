@@ -371,8 +371,17 @@ export default defineComponent({
     // 删除学生
     const deleteStudent = async (student: Student) => {
       try {
-        // 调用后端API删除指导学生关系
-        // ...
+        const res: any = await request.post('/teachers/deleteguidestudent', {
+          teacher_id: currentTeacherId.value,
+          student_id: student.id,
+          year: Number(currentYear.value)
+        });
+
+        if (res.code !== 200) {
+          ElMessage.error(res.message || '删除学生失败');
+          return;
+        }
+
         ElMessage.success(`已成功删除学生 "${student.realName}"`);
         loadStudentList();
       } catch (error) {

@@ -11,7 +11,7 @@
         :rules="rules"
         label-width="100px"
     >
-      <el-form-item label="组长" prop="adminId">
+      <el-form-item label="组长" prop="admin_id">
         <el-select
             v-model="formData.admin_id"
             placeholder="请选择答辩组组长"
@@ -61,7 +61,7 @@ export default {
       default: () => ({
         id: null,
         year: '',
-        adminId: '',
+        admin_id: '',
         maxStudents: 10,
       })
     },
