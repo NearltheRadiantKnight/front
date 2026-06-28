@@ -1,14 +1,24 @@
 import axios, {type AxiosRequestConfig, type AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 
-// 创建 axios 实例
+// 响应拦截器已解包 data，使用自定义接口描述实际返回类型
+interface RequestInstance {
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>;
+  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>;
+  interceptors: ReturnType<typeof axios.create>['interceptors'];
+  defaults: ReturnType<typeof axios.create>['defaults'];
+}
+
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api',  // 修改为8080
+  baseURL: 'http://localhost:8080/api', 
   timeout: 15000,
   headers: {
     'Content-Type': 'application/json'
   }
-})
+}) as RequestInstance;
 
 // 请求拦截器
 request.interceptors.request.use(

@@ -15,6 +15,12 @@
                                 <i class="el-icon-search"></i>
                             </template>
                         </el-input>
+                        <el-button type="success" @click="handleDownloadTemplate" :loading="templateDownloading">
+                            <el-icon><Download /></el-icon> 下载Excel模板
+                        </el-button>
+                        <el-button type="warning" @click="importDialogVisible = true">
+                            <el-icon><Upload /></el-icon> 批量导入
+                        </el-button>
                         <el-button type="primary" @click="handleAdd">
                             <i class="el-icon-plus"></i> 添加学生
                         </el-button>
@@ -95,23 +101,145 @@
             </template>
         </el-dialog>
 
+        <!-- 批量导入对话框 -->
+        <el-dialog
+            v-model="importDialogVisible"
+            title="批量导入学生"
+            width="600px"
+            :close-on-click-modal="false"
+            @closed="handleImportDialogClosed"
+        >
+            <div class="import-dialog-content">
+                <!-- 步骤提示 -->
+                <div class="import-tips">
+                    <el-alert
+                        title="导入说明"
+                        type="info"
+                        :closable="false"
+                        show-icon
+                    >
+                        <template #default>
+                            <div>
+                                <p>1. 请先点击"下载Excel模板"获取模板文件</p>
+                                <p>2. 按照模板格式填写学生信息（学号、姓名、联系电话、邮箱）</p>
+                                <p>3. 选择填好的Excel文件进行上传</p>
+                            </div>
+                        </template>
+                    </el-alert>
+                </div>
+
+                <!-- 文件上传区域 -->
+                <el-upload
+                    ref="uploadRef"
+                    class="import-upload"
+                    drag
+                    action=""
+                    :auto-upload="false"
+                    :limit="1"
+                    accept=".xlsx,.xls"
+                    :on-change="handleFileChange"
+                    :on-exceed="handleExceed"
+                    :on-remove="handleRemoveFile"
+                    :file-list="importFileList"
+                >
+                    <el-icon class="el-icon--upload"><Upload /></el-icon>
+                    <div class="el-upload__text">
+                        将Excel文件拖到此处，或<em>点击上传</em>
+                    </div>
+                    <template #tip>
+                        <div class="el-upload__tip">
+                            仅支持 .xlsx / .xls 格式文件
+                        </div>
+                    </template>
+                </el-upload>
+
+                <!-- 导入结果展示 -->
+                <div v-if="importResult" class="import-result">
+                    <el-divider />
+                    <el-alert
+                        v-if="importResult.successCount > 0 && importResult.failureCount === 0"
+                        :title="`导入成功！共成功导入 ${importResult.successCount} 条学生记录`"
+                        type="success"
+                        show-icon
+                        :closable="false"
+                    />
+                    <el-alert
+                        v-else-if="importResult.successCount > 0 && importResult.failureCount > 0"
+                        :title="`导入完成！成功 ${importResult.successCount} 条，失败 ${importResult.failureCount} 条，共 ${importResult.totalCount} 条`"
+                        type="warning"
+                        show-icon
+                        :closable="false"
+                    />
+                    <el-alert
+                        v-else
+                        :title="`导入失败！共 ${importResult.failureCount} 条记录导入失败，请查看下方明细`"
+                        type="error"
+                        show-icon
+                        :closable="false"
+                    />
+
+                    <!-- 失败明细表格 -->
+                    <div v-if="importResult.errorRows && importResult.errorRows.length > 0" class="failure-details">
+                        <h4>失败明细：</h4>
+                        <el-table :data="importResult.errorRows" max-height="250" border size="small">
+                            <el-table-column prop="rowNum" label="行号" width="70" align="center" />
+                            <el-table-column prop="reason" label="失败原因" />
+                        </el-table>
+                    </div>
+                </div>
+            </div>
+
+            <template #footer>
+                <el-button @click="importDialogVisible = false">关闭</el-button>
+                <el-button
+                    type="primary"
+                    :loading="importUploading"
+                    :disabled="!importFile"
+                    @click="handleImportSubmit"
+                >
+                    {{ importUploading ? '导入中...' : '开始导入' }}
+                </el-button>
+            </template>
+        </el-dialog>
+
     </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
+import { Upload, Download } from '@element-plus/icons-vue';
+import type { UploadFile, UploadInstance, UploadRawFile, UploadUserFile } from 'element-plus';
 import request from '@/api';
+
+// 导入结果类型
+interface ImportResult {
+  successCount: number;
+  failureCount: number;
+  totalCount: number;
+  errorRows: Array<{
+    rowNum: number;
+    reason: string;
+  }>;
+}
 
 export default defineComponent({
     name: 'StudentManagement',
+    components: {
+      Upload,
+      Download
+    },
   setup: function () {
     // Refs 声明
     const studentFormRef = ref();
+    const uploadRef = ref<UploadInstance>();
     const loading = ref(false);
     const editDialogVisible = ref(false);
     const assignDialogVisible = ref(false);
     const isEditMode = ref(false);
+    const importDialogVisible = ref(false);
+    const importUploading = ref(false);
+    const templateDownloading = ref(false);
 
     const searchKeyword = ref('');
     const studentList = ref([] as any[]);
@@ -120,6 +248,11 @@ export default defineComponent({
     const total = ref(0);
 
     const instituteId = ref(1);
+
+    // 批量导入相关
+    const importFile = ref<UploadRawFile | null>(null);
+    const importFileList = ref<UploadUserFile[]>([]);
+    const importResult = ref<ImportResult | null>(null);
 
     // 表单相关 - 使用前端字段名
     const studentForm = ref({
@@ -329,6 +462,127 @@ export default defineComponent({
       loadStudents();
     };
 
+    // 下载Excel模板
+    const handleDownloadTemplate = async () => {
+      templateDownloading.value = true;
+      try {
+        const response = await request.get('/students/import/template', {
+          responseType: 'blob'
+        });
+        // response 此时为 Blob 数据（被拦截器处理后可能直接是 data）
+        const blob = new Blob([response as any], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = '学生导入模板.xlsx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        ElMessage.success('模板下载成功');
+      } catch (error: any) {
+        console.error('下载模板失败:', error);
+        // 如果返回的是错误JSON（blob），尝试解析
+        if (error?.response?.data instanceof Blob) {
+          try {
+            const text = await error.response.data.text();
+            const json = JSON.parse(text);
+            ElMessage.error(json?.message || '下载模板失败');
+          } catch {
+            ElMessage.error('下载模板失败');
+          }
+        } else {
+          ElMessage.error('下载模板失败');
+        }
+      } finally {
+        templateDownloading.value = false;
+      }
+    };
+
+    // 文件选择变化
+    const handleFileChange = (file: UploadFile) => {
+      importFile.value = file.raw || null;
+      importResult.value = null; // 重新选择文件时清除之前的结果
+    };
+
+    // 超出文件数量限制
+    const handleExceed = () => {
+      ElMessage.warning('只能上传一个文件，请先移除已有文件');
+    };
+
+    // 移除文件
+    const handleRemoveFile = () => {
+      importFile.value = null;
+      importResult.value = null;
+    };
+
+    // 提交批量导入
+    const handleImportSubmit = async () => {
+      if (!importFile.value) {
+        ElMessage.warning('请先选择Excel文件');
+        return;
+      }
+
+      importUploading.value = true;
+      importResult.value = null;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', importFile.value);
+        formData.append('institute_id', String(instituteId.value));
+
+        const response = await request.post('/students/import/excel', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          timeout: 60000 // 导入可能耗时较长
+        }) as any;
+
+        if (response.code === 200) {
+          const data = response.data;
+          // 兼容后端返回的字段格式
+          if (typeof data === 'object' && data !== null) {
+            importResult.value = {
+              successCount: data.successCount ?? 0,
+              failureCount: data.failureCount ?? data.failCount ?? 0,
+              totalCount: data.totalCount ?? 0,
+              errorRows: data.errorRows ?? data.failures ?? []
+            };
+          } else {
+            // data 为基础类型（数字），视为成功数量
+            const num = typeof data === 'number' ? data : Number(data) || 0;
+            importResult.value = {
+              successCount: num,
+              failureCount: 0,
+              totalCount: num,
+              errorRows: []
+            };
+          }
+          if (importResult.value.successCount > 0) {
+            loadStudents(); // 有成功记录时刷新列表
+          }
+        } else {
+          ElMessage.error(response.message || '导入失败');
+        }
+      } catch (error: any) {
+        console.error('批量导入失败:', error);
+        ElMessage.error(error?.response?.data?.message || '批量导入失败，请检查文件格式');
+      } finally {
+        importUploading.value = false;
+      }
+    };
+
+    // 导入对话框关闭时重置状态
+    const handleImportDialogClosed = () => {
+      importFile.value = null;
+      importFileList.value = [];
+      importResult.value = null;
+      importUploading.value = false;
+      uploadRef.value?.clearFiles();
+    };
+
     // 初始化
     const init = () => {
       const userInfo = localStorage.getItem('userInfo');
@@ -347,10 +601,14 @@ export default defineComponent({
 
     return {
       studentFormRef,
+      uploadRef,
       loading,
       editDialogVisible,
       assignDialogVisible,
       isEditMode,
+      importDialogVisible,
+      importUploading,
+      templateDownloading,
       searchKeyword,
       studentList,
       currentPage,
@@ -363,6 +621,9 @@ export default defineComponent({
       selectedGroupId,
       yearOptions,
       groupOptions,
+      importFile,
+      importFileList,
+      importResult,
 
       loadStudents,
       handleSearch,
@@ -374,6 +635,12 @@ export default defineComponent({
       handleDelete,
       handleSizeChange,
       handlePageChange,
+      handleDownloadTemplate,
+      handleFileChange,
+      handleExceed,
+      handleRemoveFile,
+      handleImportSubmit,
+      handleImportDialogClosed,
       init
     };
   },
@@ -413,5 +680,37 @@ export default defineComponent({
 
 .el-button--text {
     padding: 5px;
+}
+
+.import-dialog-content {
+    padding: 0 10px;
+}
+
+.import-tips {
+    margin-bottom: 20px;
+}
+
+.import-tips p {
+    margin: 4px 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.import-upload {
+    margin-bottom: 10px;
+}
+
+.import-result {
+    margin-top: 10px;
+}
+
+.failure-details {
+    margin-top: 15px;
+}
+
+.failure-details h4 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #303133;
 }
 </style>
