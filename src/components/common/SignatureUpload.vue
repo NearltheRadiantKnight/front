@@ -2,13 +2,13 @@
   <div class="simple-photo-upload">
     <el-page-header @back="goBack" title="返回">
       <template #content>
-        <span class="page-header-title">签名照管理</span>
+        <span class="page-header-title">签名管理</span>
       </template>
     </el-page-header>
 
     <el-card class="upload-card">
       <div class="upload-content">
-        <!-- 当前签名照 -->
+        <!-- 当前签名 -->
         <div class="current-section">
           <h3><i class="el-icon-edit"></i> 当前签名</h3>
           <div class="current-photo-container">
@@ -161,7 +161,7 @@ export default defineComponent({
         }
 
         // 使用统一的API调用
-        const result = await userApi.getCurrentSignature(userId);
+        const result = await userApi.getCurrentSignature(userId) as any;
 
         if (result.code === 200) {
           if (result.data) {
@@ -237,7 +237,8 @@ export default defineComponent({
         console.log('用户ID:', userId);
 
         // 使用统一的API调用
-        const result = await userApi.uploadSignature(selectedFile.value, userId);
+        const result = await userApi.uploadSignature(selectedFile.value, userId) as any;
+
         console.log('上传响应结果:', result);
 
         if (result.code === 200) {

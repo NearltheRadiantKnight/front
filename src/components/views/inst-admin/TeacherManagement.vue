@@ -362,7 +362,7 @@ export default defineComponent({
         const handleQuickRemove = async (teacher: any, group: any) => {
             try {
                 await ElMessageBox.confirm(
-                    `确定要将 ${teacher.name} 从"${group.groupYear}年 小组#${group.groupId}"中移除吗？`,
+                    `确定要将 ${teacher.realName} 从"${group.groupYear}年 小组#${group.groupId}"中移除吗？`,
                     '确认移除',
                     {
                         confirmButtonText: '确定',
@@ -562,7 +562,7 @@ export default defineComponent({
 
         const handleDelete = (row: any) => {
             ElMessageBox.confirm(
-                `确定要删除教师 "${row.name}"（${row.id}）吗？`,
+                `确定要删除教师 "${row.realName}"（${row.id}）吗？`,
                 '确认删除',
                 {
                     confirmButtonText: '确定',
