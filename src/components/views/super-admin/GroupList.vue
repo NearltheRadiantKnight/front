@@ -5,23 +5,27 @@
       <div class="section-actions">
         <el-input
             v-model="searchKeyword"
-            placeholder="搜索答辩组名称或组长"
+            placeholder="输入组长真名或工号搜索"
             clearable
-            style="width: 200px; margin-right: 10px;"
+            style="width: 220px; margin-right: 10px;"
             @keyup.enter="handleSearch"
+            @clear="handleClear"
         >
           <template #prefix>
-            <i class="el-icon-search"></i>
+            <el-icon><Search /></el-icon>
+          </template>
+          <template #append>
+            <el-button :icon="Search" @click="handleSearch">搜索</el-button>
           </template>
         </el-input>
         <el-button type="primary" size="small" @click="$emit('add-group')">
-          <i class="el-icon-plus"></i> 新增答辩组
+          <el-icon><Plus /></el-icon> 新增答辩组
         </el-button>
-        <el-tag type="info">共 {{ filteredGroups.length }} 个答辩组</el-tag>
+        <el-tag type="info">共 {{ groups.length }} 个答辩组</el-tag>
       </div>
     </div>
 
-    <el-table :data="filteredGroups" v-loading="loading" style="margin-bottom: 20px;">
+    <el-table :data="groups" v-loading="loading" style="margin-bottom: 20px;">
       <el-table-column prop="realName" label="组长" width="150"></el-table-column>
       <el-table-column label="学生数" width="120">
         <template #default="{ row }">
@@ -64,8 +68,14 @@
 </template>
 
 <script>
+import { Search, Plus } from '@element-plus/icons-vue'
+
 export default {
   name: 'GroupList',
+  components: {
+    Search,
+    Plus
+  },
   props: {
     groups: {
       type: Array,
@@ -76,23 +86,13 @@ export default {
       default: false
     }
   },
-  emits: ['add-group', 'edit-group', 'manage-students', 'view-students','assign-student', 'toggle-status', 'delete-group'],
+  emits: ['add-group', 'edit-group', 'manage-students', 'view-students', 'assign-student', 'toggle-status', 'delete-group', 'search'],
   data() {
     return {
       searchKeyword: ''
     }
   },
   computed: {
-    filteredGroups() {
-      if (!this.searchKeyword) return this.groups
-
-      const keyword = this.searchKeyword.toLowerCase()
-      return this.groups.filter(group => {
-        return (
-            (group.adminName && group.adminName.toLowerCase().includes(keyword))
-        )
-      })
-    },
     activeGroupsCount() {
       return this.groups.filter(g => g.status === 1).length
     },
@@ -108,7 +108,11 @@ export default {
   },
   methods: {
     handleSearch() {
-      // 搜索逻辑已在计算属性中实现
+      this.$emit('search', this.searchKeyword)
+    },
+    handleClear() {
+      this.searchKeyword = ''
+      this.$emit('search', '')
     }
   }
 }

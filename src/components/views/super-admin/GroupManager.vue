@@ -13,6 +13,7 @@
       @edit-group="handleEditGroup"
       @view-students="handleViewStudents"
       @delete-group="handleDeleteGroup"
+      @search="handleSearch"
     />
 
     <GroupFormDialog
@@ -182,6 +183,25 @@ export default {
     handleStudentsChanged() {
       this.fetchGroups()
       this.$emit('refresh')
+    },
+
+    async handleSearch(keyword) {
+      if (!keyword || !keyword.trim()) {
+        this.fetchGroups()
+        return
+      }
+      this.loading = true
+      const params = new URLSearchParams()
+      params.append('year', this.year.year)
+      params.append('keyword', keyword.trim())
+      if (this.instituteId > 0) {
+        params.append('instituteId', this.instituteId)
+      }
+      request.get(`/groups/search?${params.toString()}`).then(res => {
+        this.groups = res.data
+      }).finally(() => {
+        this.loading = false
+      })
     }
   }
 }

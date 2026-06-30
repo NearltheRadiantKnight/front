@@ -15,6 +15,7 @@
         @assign-student="handleAssignStudent"
         @view-students="handleViewStudents"
         @delete-group="handleDeleteGroup"
+        @search="handleSearch"
     />
 
     <!-- 答辩组表单对话框 -->
@@ -179,6 +180,25 @@ export default {
 
     handleStudentRemoved() {
       this.fetchGroups()
+    },
+
+    async handleSearch(keyword) {
+      if (!keyword || !keyword.trim()) {
+        this.fetchGroups()
+        return
+      }
+      this.loading = true
+      const userInfo = localStorage.getItem('userInfo')
+      const info = JSON.parse(userInfo)
+      const params = new URLSearchParams()
+      params.append('year', this.year.year)
+      params.append('keyword', keyword.trim())
+      params.append('instituteId', info.InstId)
+      request.get(`/groups/search?${params.toString()}`).then(res => {
+        this.groups = res.data
+      }).finally(() => {
+        this.loading = false
+      })
     }
   }
 }
